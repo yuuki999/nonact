@@ -385,7 +385,7 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
             
             <h3 className="text-xl font-bold mb-2">予約が完了しました！</h3>
             <p className="text-gray-600 mb-6">
-              {person.name}さんとの時間を予約しました。<br />
+              {person.name}さんの何もしない時間を予約しました。<br />
               確認メールを{formData.email}に送信しました。
             </p>
             
@@ -395,7 +395,7 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
                 <span className="font-medium">{selectedDate}曜日 {selectedTime}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">担当:</span>
+                <span className="text-gray-500">何もしない人:</span>
                 <span className="font-medium">{person.name}</span>
               </div>
             </div>

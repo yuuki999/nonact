@@ -22,8 +22,8 @@ export default function Home() {
       image: '/images/person1.jpg',
       rank: 1,
       category: 'プレミアム',
-      mainTitle: '元気でよくしゃべる',
-      tags: ['人見知りもしない', '優しく一緒に過ごしたいなら間違いない', '積極的に話しかけてくれる']
+      mainTitle: '何もしないのが得意',
+      tags: ['静かに寄り添います', '一緒にいるだけで安心感', '無言でも心地よい時間を提供']
     },
     {
       id: 2,
@@ -31,8 +31,8 @@ export default function Home() {
       image: '/images/person2.jpg',
       rank: 2,
       category: 'スペシャル',
-      mainTitle: '自信がない人に寄り添いたい',
-      tags: ['遠慮せずに気兼ねなく', '自然な笑顔に癒やされるのでぜひ心のお食事が目標', 'クッカが喋く、楽しそうに『きは』と笑うタイプ']
+      mainTitle: '存在感を消すのが上手',
+      tags: ['気を遣わせません', '自然体で過ごせます', '何もしない時間の心地よさを体験']
     },
     {
       id: 3,
@@ -40,48 +40,48 @@ export default function Home() {
       image: '/images/person3.jpg',
       rank: 3,
       category: 'レギュラー',
-      mainTitle: '明るく共感力にあふれる',
-      tags: ['先輩のような言葉選びがセンス抜群', 'なんでも聴いてみようと話を聞いてくれる', 'お手洗いたくても上品に笑っています']
+      mainTitle: '穏やかな空気を作る',
+      tags: ['無言でも不思議と落ち着く', '何もしない時間を大切に', '一緒にいるだけでリラックス']
     },
     {
       id: 4,
       name: '杉崎澪',
       image: '/images/person4.jpg',
       category: 'スペシャル',
-      mainTitle: '無邪気でなつっこい',
-      tags: ['ナチュラルな優女感', '特徴さなくても大丈夫', 'ハンターキャット中年男性']
+      mainTitle: '静かな共有時間の達人',
+      tags: ['存在を主張しません', '何もしない贅沢を体験', '心地よい距離感を保ちます']
     },
     {
       id: 5,
       name: '鈴木ありさ',
       image: '/images/person5.jpg',
       category: 'スペシャル',
-      mainTitle: '優しい雰囲気が魅力的',
-      tags: ['落ち着いた空間を作れる', '話を聞くのが得意', '心地よい距離感']
+      mainTitle: '無の境地を極める',
+      tags: ['何もしない時間の価値を知る', '静寂を楽しむ', '心穏やかな時間を共有']
     },
     {
       id: 6,
       name: '山田ななこ',
       image: '/images/person6.jpg',
       category: 'プレミアム',
-      mainTitle: '元気で明るい性格',
-      tags: ['どんな場所でも盛り上げる', '初対面でも緊張しない', '楽しい時間を提供します']
+      mainTitle: '何もしない上級者',
+      tags: ['無駄な気遣いをさせません', '自然な間を大切に', '何もしないことの豊かさを体験']
     },
     {
       id: 7,
       name: '高橋みく',
       image: '/images/person7.jpg',
       category: 'レギュラー',
-      mainTitle: '知的で落ち着いた雰囲気',
-      tags: ['幅広い話題に対応', '静かな時間も大切に', '一緒にいて疲れない']
+      mainTitle: '静寂の中の安らぎ',
+      tags: ['無言でも居心地が良い', '何もしない贅沢な時間', '自分のペースを尊重します']
     },
     {
       id: 8,
       name: '田中ゆい',
       image: '/images/person8.jpg',
       category: 'スペシャル',
-      mainTitle: '癒しオーラの持ち主',
-      tags: ['リラックスできる空間作り', '穏やかな笑顔', '自然体で接します']
+      mainTitle: '無為自然の時間を提供',
+      tags: ['何もしないプロフェッショナル', '静かな存在感', '心地よい空間を作ります']
     }
   ]);
 
@@ -97,8 +97,8 @@ export default function Home() {
         <h1 className="text-2xl font-bold text-center my-10">レンタル何もしない人® 一覧</h1>
 
         <p className="text-center text-gray-700 mb-6 max-w-3xl mx-auto">
-          レンタル何もしない人®PREMIUMはしっかりと研修を行った彼女のみが対応いたします。
-          ただ女の子を物扱いしているようなサービスには全く賛同致しかねます。
+          レンタル何もしない人®は、何もしないプロフェッショナルが登録し、そのサービスを利用したい人がレンタルできるプラットフォームです。
+          何もしない時間の贅沢さと心地よさを体験してみませんか。
           <Link href="/reasons" className="text-blue-600 hover:underline">選ばれる理由を見る</Link>
         </p>
 
