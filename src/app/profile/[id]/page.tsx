@@ -132,14 +132,6 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-2 flex items-center text-sm text-gray-500">
-        <Link href="/" className="hover:underline">ホーム</Link>
-        <span className="mx-2">/</span>
-        <Link href="/" className="hover:underline">レンタル何もしない人一覧</Link>
-        <span className="mx-2">/</span>
-        <span>{person.name}</span>
-      </div>
-
       <div className="bg-white rounded-lg shadow-md overflow-hidden my-8">
         <div className="grid grid-cols-1 md:grid-cols-2">
           <div className="relative h-96 md:h-full">

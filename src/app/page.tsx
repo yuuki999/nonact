@@ -88,18 +88,12 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-amber-50">
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-2 flex items-center text-sm text-gray-500">
-          <Link href="/" className="hover:underline">ホーム</Link>
-          <span className="mx-2">/</span>
-          <span>レンタル何もしない人一覧</span>
-        </div>
-
         <h1 className="text-2xl font-bold text-center my-10">レンタル何もしない人® 一覧</h1>
 
         <p className="text-center text-gray-700 mb-6 max-w-3xl mx-auto">
           レンタル何もしない人®は、何もしないプロフェッショナルが登録し、そのサービスを利用したい人がレンタルできるプラットフォームです。
           何もしない時間の贅沢さと心地よさを体験してみませんか。
-          <Link href="/reasons" className="text-blue-600 hover:underline">選ばれる理由を見る</Link>
+          {/* <Link href="/reasons" className="text-blue-600 hover:underline">選ばれる理由を見る</Link> */}
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

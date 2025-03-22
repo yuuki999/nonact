@@ -39,7 +39,7 @@ export default function Header() {
           <Link href="/" className="text-gray-600 hover:text-gray-900">何もしない人一覧</Link>
           <Link href="/pricing" className="text-gray-600 hover:text-gray-900">料金プラン</Link>
           <Link href="/register" className="text-gray-600 hover:text-gray-900">何もしない人登録</Link>
-          <Link href="/reasons" className="text-gray-600 hover:text-gray-900">選ばれる理由</Link>
+          {/* <Link href="/reasons" className="text-gray-600 hover:text-gray-900">選ばれる理由</Link> */}
           <Link href="/voices" className="text-gray-600 hover:text-gray-900">ご利用者の声</Link>
         </nav>
         <div className="flex items-center">
@@ -50,13 +50,13 @@ export default function Header() {
             >
               ログイン
             </button>
-            <span className="text-gray-300">|</span>
+            {/* <span className="text-gray-300">|</span>
             <button
               onClick={openSignupModal}
               className="text-amber-500 text-sm hover:text-amber-600 focus:outline-none"
             >
               新規登録
-            </button>
+            </button> */}
           </div>
           <Link href="/register" className="bg-amber-500 text-white text-sm px-4 py-2 rounded-full hover:bg-amber-600 ml-4">
             レンタル予約
