@@ -1,2 +1,2 @@
-[!TIP]
-```supabase/config.toml```でsupabaseのportを編集できる。
+> [!TIP]
+> supabase/config.toml でsupabaseのportを編集できる。
