@@ -1,31 +1,31 @@
 ## supabase使い方
 
 ### ローカルSupabaseの起動
-npx supabase start
+supabase start
 
 ### ローカルSupabaseの停止
-npx supabase stop
+supabase stop
 
 ### 状態確認
-npx supabase status
+supabase status
 
 ### 新しいマイグレーションの作成
-npx supabase migration new migration_name
+supabase migration new migration_name
 
 ### マイグレーションの適用
-npx supabase migration up
+supabase migration up
 
 ### DBのリセット（全データ削除＆マイグレーション再適用）
-npx supabase db reset
+supabase db reset
 
 ### 型定義の生成
-npx supabase gen types typescript --local > lib/database.types.ts
+supabase gen types typescript --local > lib/database.types.ts
 
 ### リモートプロジェクトとの連携
-npx supabase link --project-ref your-project-ref
+supabase link --project-ref your-project-ref
 
 ### リモートにマイグレーションを適用
-npx supabase db push
+supabase db push
 
 > [!TIP]
 > supabase/config.toml でsupabaseのportを編集できる。

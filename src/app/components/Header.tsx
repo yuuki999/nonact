@@ -1,12 +1,50 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import AuthModals from './AuthModals';
+import { supabase } from '../lib/supabase';
 
 export default function Header() {
+  const router = useRouter();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
+  const [session, setSession] = useState<{ user: { id: string } } | null>(null);
+  const [profile, setProfile] = useState<{id: string; display_name?: string | null} | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setSession(session);
+      
+      if (session) {
+        // プロフィール情報を取得
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+        
+        setProfile(profileData);
+      }
+      
+      setLoading(false);
+    };
+    
+    checkSession();
+    
+    // 認証状態の変更を監視
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      checkSession();
+    });
+    
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const openLoginModal = () => {
     setIsLoginModalOpen(true);
@@ -25,6 +63,40 @@ export default function Header() {
   const closeSignupModal = () => {
     setIsSignupModalOpen(false);
   };
+  
+  // レンタル予約ボタンのクリック処理
+  const handleRentalClick = () => {
+    if (!session) {
+      // 未ログインの場合はログインモーダルを表示
+      openLoginModal();
+      return;
+    }
+    
+    if (!profile || !profile.display_name) {
+      // ログイン済みだが基本情報がない場合は入力フォームへ
+      router.push('/rental');
+      return;
+    }
+    
+    // ログイン済みで基本情報もある場合は予約ページへ
+    router.push('/rental/booking');
+  };
+
+  if (loading) {
+    // ローディング中はヘッダーをシンプルに表示
+    return (
+      <header className="bg-white shadow-sm">
+        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+          <div className="flex items-center">
+            <Link href="/" className="font-bold text-xl text-gray-800 flex items-center">
+              <span>レンタル何もしない人</span>
+              <span className="ml-2 bg-amber-500 text-white text-xs px-2 py-1 rounded">PREMIUM</span>
+            </Link>
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="bg-white shadow-sm">
@@ -58,9 +130,12 @@ export default function Header() {
               新規登録
             </button> */}
           </div>
-          <Link href="/register" className="bg-amber-500 text-white text-sm px-4 py-2 rounded-full hover:bg-amber-600 ml-4">
+          <button
+            onClick={handleRentalClick}
+            className="bg-amber-500 text-white text-sm px-4 py-2 rounded-full hover:bg-amber-600 ml-4"
+          >
             レンタル予約
-          </Link>
+          </button>
         </div>
       </div>
       

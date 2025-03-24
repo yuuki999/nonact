@@ -2,123 +2,108 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { pricingOptions } from '../components/PricingTable';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 
-interface FormData {
-  name: string;
-  age: string;
-  height: string;
-  hobbies: string;
-  description: string;
-  mainTitle: string;
-  tags: string[];
-  category: string;
-  profileImage: File | null;
-  schedule: {
-    day: string;
-    available: boolean;
-  }[];
-}
+// Zodスキーマの定義
+const registerFormSchema = z.object({
+  name: z.string().min(1, { message: '名前は必須です' }),
+  email: z.string().email({ message: '有効なメールアドレスを入力してください' }),
+  age: z.string().min(1, { message: '年齢は必須です' }),
+  height: z.string().min(1, { message: '身長は必須です' }),
+  hobbies: z.string().min(1, { message: '趣味は必須です' }),
+  description: z.string().min(10, { message: '自己紹介は10文字以上入力してください' })
+});
+
+type RegisterFormData = z.infer<typeof registerFormSchema>;
 
 export default function RegisterPage() {
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState<FormData>({
-    name: '',
-    age: '',
-    height: '',
-    hobbies: '',
-    description: '',
-    mainTitle: '',
-    tags: ['', '', ''],
-    category: '',
-    profileImage: null,
-    schedule: [
-      { day: '月', available: false },
-      { day: '火', available: false },
-      { day: '水', available: false },
-      { day: '木', available: false },
-      { day: '金', available: false },
-      { day: '土', available: false },
-      { day: '日', available: false },
-    ]
-  });
+  const [profileImage, setProfileImage] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState<{ success: boolean; message: string } | null>(null);
   
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-  
-  const handleTagChange = (index: number, value: string) => {
-    const newTags = [...formData.tags];
-    newTags[index] = value;
-    setFormData(prev => ({ ...prev, tags: newTags }));
-  };
-  
-  const handleScheduleChange = (day: string) => {
-    const newSchedule = formData.schedule.map(item => {
-      if (item.day === day) {
-        return { ...item, available: !item.available };
-      }
-      return item;
-    });
-    setFormData(prev => ({ ...prev, schedule: newSchedule }));
-  };
+  // React Hook Formの設定
+  const { 
+    register, 
+    handleSubmit: handleFormSubmit, 
+    formState: { errors, isValid },
+    getValues
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerFormSchema),
+    mode: 'onChange'
+  });
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFormData(prev => ({ ...prev, profileImage: e.target.files![0] }));
+      setProfileImage(e.target.files[0]);
     }
   };
   
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: RegisterFormData) => {
+    if (!profileImage) {
+      alert('プロフィール画像は必須です');
+      return;
+    }
+    
     setIsSubmitting(true);
     
-    // ここで実際のAPIを呼び出して登録処理を行います
-    // この例ではシミュレーションのみ行います
     try {
-      // 登録処理をシミュレート
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // 画像をBase64に変換
+      const profileImageBase64 = await convertFileToBase64(profileImage);
       
-      // 成功したと仮定
+      // APIリクエストの準備
+      const requestData = {
+        ...data,
+        profileImageBase64
+      };
+      
+      // API呼び出し
+      const response = await fetch('/api/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || '登録処理中にエラーが発生しました');
+      }
+      
+      // 成功
       setSubmitResult({
         success: true,
-        message: '登録が完了しました。審査後に連絡いたします。'
+        message: result.message || '登録が完了しました。確認メールをご確認ください。'
       });
       
       // 最終ステップに進む
-      setStep(3);
+      setStep(2);
     } catch (error) {
+      console.error('登録エラー:', error);
       setSubmitResult({
         success: false,
-        message: '登録中にエラーが発生しました。後でもう一度お試しください。'
+        message: error instanceof Error ? error.message : '登録中にエラーが発生しました。後でもう一度お試しください。'
       });
     } finally {
       setIsSubmitting(false);
     }
   };
   
-  const isStepOneValid = () => {
-    return (
-      formData.name.trim() !== '' &&
-      formData.age.trim() !== '' &&
-      formData.height.trim() !== '' &&
-      formData.hobbies.trim() !== '' &&
-      formData.description.trim() !== '' &&
-      formData.profileImage !== null
-    );
+  // ファイルをBase64に変換する関数
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
   };
   
-  const isStepTwoValid = () => {
-    return (
-      formData.mainTitle.trim() !== '' &&
-      formData.tags.every(tag => tag.trim() !== '') &&
-      formData.category !== '' &&
-      formData.schedule.some(item => item.available)
-    );
-  };
+
   
   return (
     <div className="container mx-auto px-4 py-12">      
@@ -139,16 +124,12 @@ export default function RegisterPage() {
         </div>
         <div className={`flex-1 text-center pb-4 ${step >= 2 ? 'border-b-2 border-amber-500' : 'border-b border-gray-200'}`}>
           <span className={`inline-block w-8 h-8 rounded-full mb-2 ${step >= 2 ? 'bg-amber-500 text-white' : 'bg-gray-200'} flex items-center justify-center`}>2</span>
-          <p className={step >= 2 ? 'text-amber-500' : 'text-gray-500'}>プロフィール設定</p>
-        </div>
-        <div className={`flex-1 text-center pb-4 ${step >= 3 ? 'border-b-2 border-amber-500' : 'border-b border-gray-200'}`}>
-          <span className={`inline-block w-8 h-8 rounded-full mb-2 ${step >= 3 ? 'bg-amber-500 text-white' : 'bg-gray-200'} flex items-center justify-center`}>3</span>
-          <p className={step >= 3 ? 'text-amber-500' : 'text-gray-500'}>完了</p>
+          <p className={step >= 2 ? 'text-amber-500' : 'text-gray-500'}>完了</p>
         </div>
       </div>
       
       <div className="bg-white rounded-lg shadow-md overflow-hidden max-w-2xl mx-auto">
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleFormSubmit(onSubmit)}>
           {/* ステップ1: 基本情報 */}
           {step === 1 && (
             <div className="p-6">
@@ -162,12 +143,24 @@ export default function RegisterPage() {
                   <input
                     type="text"
                     id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    required
+                    {...register('name')}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 ${errors.name ? 'border-red-500' : 'border-gray-300'}`}
                   />
+                  {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message as string}</p>}
+                </div>
+
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                    メールアドレス <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    id="email"
+                    {...register('email')}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 ${errors.email ? 'border-red-500' : 'border-gray-300'}`}
+                    placeholder="example@example.com"
+                  />
+                  {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message as string}</p>}
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
@@ -178,12 +171,10 @@ export default function RegisterPage() {
                     <input
                       type="number"
                       id="age"
-                      name="age"
-                      value={formData.age}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                      required
+                      {...register('age')}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 ${errors.age ? 'border-red-500' : 'border-gray-300'}`}
                     />
+                    {errors.age && <p className="text-red-500 text-xs mt-1">{errors.age.message as string}</p>}
                   </div>
                   
                   <div>
@@ -193,12 +184,10 @@ export default function RegisterPage() {
                     <input
                       type="number"
                       id="height"
-                      name="height"
-                      value={formData.height}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                      required
+                      {...register('height')}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 ${errors.height ? 'border-red-500' : 'border-gray-300'}`}
                     />
+                    {errors.height && <p className="text-red-500 text-xs mt-1">{errors.height.message as string}</p>}
                   </div>
                 </div>
                 
@@ -209,13 +198,11 @@ export default function RegisterPage() {
                   <input
                     type="text"
                     id="hobbies"
-                    name="hobbies"
-                    value={formData.hobbies}
-                    onChange={handleInputChange}
+                    {...register('hobbies')}
                     placeholder="例: 読書, 散歩, 音楽鑑賞"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    required
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 ${errors.hobbies ? 'border-red-500' : 'border-gray-300'}`}
                   />
+                  {errors.hobbies && <p className="text-red-500 text-xs mt-1">{errors.hobbies.message as string}</p>}
                 </div>
                 
                 <div>
@@ -224,14 +211,12 @@ export default function RegisterPage() {
                   </label>
                   <textarea
                     id="description"
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
+                    {...register('description')}
                     rows={4}
                     placeholder="何もしない時間の提供について、あなたの考えや特徴を記入してください"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    required
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 ${errors.description ? 'border-red-500' : 'border-gray-300'}`}
                   />
+                  {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description.message as string}</p>}
                 </div>
                 
                 <div>
@@ -245,131 +230,19 @@ export default function RegisterPage() {
                     accept="image/*"
                     onChange={handleFileChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    required
                   />
+                  {!profileImage && <p className="text-red-500 text-xs mt-1">プロフィール画像は必須です</p>}
                   <p className="text-xs text-gray-500 mt-1">※ 顔がはっきり写っている写真をアップロードしてください</p>
                 </div>
               </div>
               
               <div className="mt-8 flex justify-end">
                 <button
-                  type="button"
-                  onClick={() => setStep(2)}
-                  disabled={!isStepOneValid()}
-                  className={`
-                    py-2 px-6 rounded-lg font-medium
-                    ${isStepOneValid() ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}
-                  `}
-                >
-                  次へ進む
-                </button>
-              </div>
-            </div>
-          )}
-          
-          {/* ステップ2: プロフィール設定 */}
-          {step === 2 && (
-            <div className="p-6">
-              <h2 className="text-xl font-bold mb-6">プロフィールを設定</h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="mainTitle" className="block text-sm font-medium text-gray-700 mb-1">
-                    メインタイトル <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    id="mainTitle"
-                    name="mainTitle"
-                    value={formData.mainTitle}
-                    onChange={handleInputChange}
-                    placeholder="例: 何もしないのが得意"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    required
-                  />
-                  <p className="text-xs text-gray-500 mt-1">※ あなたの「何もしない」特徴を端的に表す一文を入力してください</p>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    特徴タグ (3つ) <span className="text-red-500">*</span>
-                  </label>
-                  <div className="space-y-2">
-                    {[0, 1, 2].map(index => (
-                      <input
-                        key={index}
-                        type="text"
-                        value={formData.tags[index]}
-                        onChange={(e) => handleTagChange(index, e.target.value)}
-                        placeholder={`特徴タグ ${index + 1}`}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                        required
-                      />
-                    ))}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">※ あなたの「何もしない」サービスの特徴を表すタグを3つ入力してください</p>
-                </div>
-                
-                <div>
-                  <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
-                    カテゴリー <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    id="category"
-                    name="category"
-                    value={formData.category}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    required
-                  >
-                    <option value="">選択してください</option>
-                    {pricingOptions.map(option => (
-                      <option key={option.category} value={option.category}>
-                        {option.category} (¥{option.basePrice.toLocaleString()}/時間)
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-gray-500 mt-1">※ あなたの「何もしない」レベルに合ったカテゴリーを選択してください</p>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    対応可能な曜日 <span className="text-red-500">*</span>
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {formData.schedule.map((item) => (
-                      <button
-                        key={item.day}
-                        type="button"
-                        onClick={() => handleScheduleChange(item.day)}
-                        className={`
-                          w-12 h-12 rounded-full flex items-center justify-center
-                          ${item.available ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-700'}
-                        `}
-                      >
-                        {item.day}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">※ 対応可能な曜日を選択してください（複数選択可）</p>
-                </div>
-              </div>
-              
-              <div className="mt-8 flex justify-between">
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="py-2 px-6 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50"
-                >
-                  戻る
-                </button>
-                
-                <button
                   type="submit"
-                  disabled={!isStepTwoValid() || isSubmitting}
+                  disabled={!isValid || !profileImage || isSubmitting}
                   className={`
                     py-2 px-6 rounded-lg font-medium
-                    ${!isStepTwoValid() || isSubmitting ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-amber-500 hover:bg-amber-600 text-white'}
+                    ${isValid && profileImage && !isSubmitting ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}
                   `}
                 >
                   {isSubmitting ? '送信中...' : '登録する'}
@@ -378,8 +251,10 @@ export default function RegisterPage() {
             </div>
           )}
           
-          {/* ステップ3: 完了 */}
-          {step === 3 && (
+
+          
+          {/* ステップ2: 完了 */}
+          {step === 2 && (
             <div className="p-6 text-center">
               <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -396,10 +271,10 @@ export default function RegisterPage() {
               <div className="bg-amber-50 rounded-lg p-4 mb-6 text-left">
                 <h4 className="font-medium mb-2">登録情報</h4>
                 <ul className="space-y-1 text-sm">
-                  <li><span className="font-medium">お名前:</span> {formData.name}</li>
-                  <li><span className="font-medium">年齢:</span> {formData.age}歳</li>
-                  <li><span className="font-medium">カテゴリー:</span> {formData.category}</li>
-                  <li><span className="font-medium">メインタイトル:</span> {formData.mainTitle}</li>
+                  <li><span className="font-medium">お名前:</span> {getValues('name')}</li>
+                  <li><span className="font-medium">メールアドレス:</span> {getValues('email')}</li>
+                  <li><span className="font-medium">年齢:</span> {getValues('age')}歳</li>
+                  <li><span className="font-medium">趣味:</span> {getValues('hobbies')}</li>
                 </ul>
               </div>
               
@@ -409,8 +284,8 @@ export default function RegisterPage() {
                   レンタル何もしない人®では、お客様からいただいた料金の50%があなたの収入となります。<br />
                   残りの50%はプラットフォーム運営費用として使用されます。<br />
                   <br />
-                  例: {formData.category}プラン（{pricingOptions.find(o => o.category === formData.category)?.basePrice.toLocaleString() || 0}円/時間）の場合<br />
-                  あなたの収入: {Math.floor((pricingOptions.find(o => o.category === formData.category)?.basePrice || 0) * 0.5).toLocaleString()}円/時間
+                  基本料金: 3,000円/時間の場合<br />
+                  あなたの収入: 1,500円/時間
                 </p>
               </div>
               
