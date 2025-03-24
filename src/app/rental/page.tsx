@@ -143,7 +143,7 @@ export default function RentalPage() {
         setLoading(false);
       }
     };
-        
+
     getSession();
   }, [setValue, router]);
   
