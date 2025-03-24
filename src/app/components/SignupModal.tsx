@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { supabase } from '../lib/supabase';
 
 interface SignupModalProps {
   isOpen: boolean;
@@ -29,33 +30,69 @@ export default function SignupModal({ isOpen, onClose, onSignupSuccess, onSwitch
     setError('');
     
     try {
-      // 仮の登録処理
-      console.log('新規登録処理:', email, password);
+      // Supabaseを使ってサインアップ & 確認メール送信
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          // App Routerではクッキーベースの認証を使用
+          // サインアップ後に自動的にサインインさせない
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: {
+            // ユーザーのメタデータを追加できます
+            signUpDate: new Date().toISOString(),
+          }
+        }
+      });
+
+      if (signUpError) throw signUpError;
+
+      // 既に登録済みのメールアドレスでサインアップを試みた場合
+      if (data?.user?.identities?.length === 0) {
+        setError('このメールアドレスはすでに登録されています。');
+        return;
+      }
+
+      console.log('サインアップ成功:', data);
+      
       // 成功したら完了モーダルを表示
       handleClose();
       onSignupSuccess(email);
-    } catch (error) {
-      setError('登録に失敗しました。別のメールアドレスをお試しください。');
+    } catch (error: Error | unknown) {
       console.error('登録エラー:', error);
+      const errorMessage = error instanceof Error ? error.message : '登録に失敗しました。別のメールアドレスをお試しください。';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleSignup = () => {
-    // Googleサインアップ処理
-    console.log('Googleで登録');
-    // 成功したら完了モーダルを表示
-    handleClose();
-    onSignupSuccess(email);
+  const handleGoogleSignup = async () => {
+    try {
+      // 結果はリダイレクト後に処理されるので、ここでは使用しない
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
+      
+      if (error) throw error;
+      
+      // GoogleのOAuthは別ウィンドウにリダイレクトするため
+      // ここでは特に何もせず、リダイレクト後の処理を待ちます
+    } catch (error: Error | unknown) {
+      console.error('Googleサインアップエラー:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Googleサインアップに失敗しました。';
+      setError(errorMessage);
+    }
   };
 
-  const handleLineSignup = () => {
-    // LINEサインアップ処理
+  const handleLineSignup = async () => {
+    // LINEはSupabaseのデフォルトプロバイダーではないため
+    // カスタム認証フローを実装するか、別のライブラリを使用する必要があります
     console.log('LINEで登録');
-    // 成功したら完了モーダルを表示
-    handleClose();
-    onSignupSuccess(email);
+    alert('LINE認証は別途実装が必要です。Supabaseカスタム認証プロバイダーを設定してください。');
   };
 
   if (!isOpen) return null;

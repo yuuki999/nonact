@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { supabase } from '../lib/supabase';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -29,28 +30,76 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup }: LoginM
     setError('');
     
     try {
-      // 仮のログイン処理
-      console.log('ログイン処理:', email, password);
+      // Supabaseを使ってログイン (App Routerではクッキーベースの認証を使用)
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) throw signInError;
+
+      console.log('ログイン成功:', data);
+      
       // 成功したらモーダルを閉じる
       handleClose();
-      // 必要に応じてリダイレクトなど
-      // router.push('/');
-    } catch (error) {
-      setError('ログインに失敗しました。メールアドレスとパスワードを確認してください。');
+      
+      // ページをリロードしてログイン状態を反映
+      window.location.reload();
+    } catch (error: Error | unknown) {
       console.error('ログインエラー:', error);
+
+      let errorMessage = 'ログインに失敗しました。メールアドレスとパスワードを確認してください。';
+
+      // AuthApiErrorの場合、errorCodeに基づいてメッセージをカスタマイズ
+      if (error && typeof error === 'object') {
+        // ここで型アサーションを使って、name と code プロパティへのアクセスを可能にする
+        const authError = error as { name?: string; code?: string; message?: string };
+        
+        if (authError.name === 'AuthApiError') {
+          if (authError.code === 'invalid_credentials') {
+            errorMessage = 'ログインに失敗しました。メールアドレスとパスワードを確認してください。';
+          } else if (authError.code === 'user_not_found') {
+            errorMessage = 'このメールアドレスは登録されていません。';
+          } else if (authError.code === 'email_not_confirmed') {
+            errorMessage = 'メールアドレスの確認が完了していません。確認メールをご確認ください。';
+          }
+        }
+      } else if (error instanceof Error) {
+        errorMessage = `エラーが発生しました: ${error.message}`;
+      }
+
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleLogin = () => {
-    // Googleログイン処理
-    console.log('Googleでログイン');
+  const handleGoogleLogin = async () => {
+    try {
+      // 結果はリダイレクト後に処理されるので、ここでは使用しない
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
+      
+      if (error) throw error;
+      
+      // GoogleのOAuthは別ウィンドウにリダイレクトするため
+      // ここでは特に何もせず、リダイレクト後の処理を待ちます
+    } catch (error: Error | unknown) {
+      console.error('Googleログインエラー:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Googleログインに失敗しました。';
+      setError(errorMessage);
+    }
   };
 
-  const handleLineLogin = () => {
-    // LINEログイン処理
+  const handleLineLogin = async () => {
+    // LINEはSupabaseのデフォルトプロバイダーではないため
+    // カスタム認証フローを実装するか、別のライブラリを使用する必要があります
     console.log('LINEでログイン');
+    alert('LINE認証は別途実装が必要です。Supabaseカスタム認証プロバイダーを設定してください。');
   };
 
   if (!isOpen) return null;
