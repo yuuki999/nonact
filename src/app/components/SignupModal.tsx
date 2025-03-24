@@ -88,12 +88,12 @@ export default function SignupModal({ isOpen, onClose, onSignupSuccess, onSwitch
     }
   };
 
-  const handleLineSignup = async () => {
-    // LINEはSupabaseのデフォルトプロバイダーではないため
-    // カスタム認証フローを実装するか、別のライブラリを使用する必要があります
-    console.log('LINEで登録');
-    alert('LINE認証は別途実装が必要です。Supabaseカスタム認証プロバイダーを設定してください。');
-  };
+  // const handleLineSignup = async () => {
+  //   // LINEはSupabaseのデフォルトプロバイダーではないため
+  //   // カスタム認証フローを実装するか、別のライブラリを使用する必要があります
+  //   console.log('LINEで登録');
+  //   alert('LINE認証は別途実装が必要です。Supabaseカスタム認証プロバイダーを設定してください。');
+  // };
 
   if (!isOpen) return null;
 
@@ -213,7 +213,7 @@ export default function SignupModal({ isOpen, onClose, onSignupSuccess, onSwitch
               <span>Googleで登録</span>
             </button>
             
-            <button
+            {/* <button
               onClick={handleLineSignup}
               className="w-full flex items-center justify-center gap-3 px-4 py-2 border border-gray-300 rounded-md bg-[#06C755] text-white hover:bg-[#05b14c] focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-colors"
             >
@@ -221,7 +221,7 @@ export default function SignupModal({ isOpen, onClose, onSignupSuccess, onSwitch
                 <path d="M19.365 9.89c.50 0 .907.41.907.91s-.407.91-.907.91H17.59v1.306h1.775c.5 0 .907.41.907.91s-.407.91-.907.91H16.59c-.5 0-.907-.41-.907-.91v-5.03c0-.5.407-.91.907-.91h2.775c.5 0 .907.41.907.91s-.407.91-.907.91H17.59v1.083h1.775zm-6.09 0c.5 0 .907.41.907.91v3.126c0 .5-.407.91-.907.91s-.907-.41-.907-.91v-3.126c0-.5.407-.91.907-.91zm-2.283.91c0-.5-.407-.91-.907-.91s-.907.41-.907.91v3.126c0 .5.407.91.907.91s.907-.41.907-.91V10.8zm-5.75-1.82c-.5 0-.907.41-.907.91v5.03c0 .5.407.91.907.91s.907-.41.907-.91v-1.98h2.775c.5 0 .907-.41.907-.91s-.407-.91-.907-.91H6.149v-1.306h2.775c.5 0 .907-.41.907-.91s-.407-.91-.907-.91H5.242z"/>
               </svg>
               <span>LINEで登録</span>
-            </button>
+            </button> */}
           </div>
         </div>
       </div>

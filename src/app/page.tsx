@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import AuthStatus from './components/AuthStatus';
 
 interface Person {
   id: number;
@@ -88,6 +89,9 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-amber-50">
       <div className="container mx-auto px-4 py-8">
+        <div className="mb-6">
+          <AuthStatus />
+        </div>
         <h1 className="text-2xl font-bold text-center my-10">レンタル何もしない人® 一覧</h1>
 
         <p className="text-center text-gray-700 mb-6 max-w-3xl mx-auto">

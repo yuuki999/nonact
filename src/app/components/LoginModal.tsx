@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '../lib/supabase';
+import { FaTwitter, FaFacebook } from 'react-icons/fa';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup }: LoginM
     onClose();
   };
 
+  // メール/パスワードでのログイン処理
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -95,11 +97,53 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup }: LoginM
     }
   };
 
+  const handleTwitterLogin = async () => {
+    try {
+      // 結果はリダイレクト後に処理されるので、ここでは使用しない
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'twitter',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
+      
+      if (error) throw error;
+      
+      // TwitterのOAuthは別ウィンドウにリダイレクトするため
+      // ここでは特に何もせず、リダイレクト後の処理を待ちます
+    } catch (error: Error | unknown) {
+      console.error('Twitterログインエラー:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Twitterログインに失敗しました。';
+      setError(errorMessage);
+    }
+  };
+
+  const handleFacebookLogin = async () => {
+    try {
+      // 結果はリダイレクト後に処理されるので、ここでは使用しない
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'facebook',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
+      
+      if (error) throw error;
+      
+      // FacebookのOAuthは別ウィンドウにリダイレクトするため
+      // ここでは特に何もせず、リダイレクト後の処理を待ちます
+    } catch (error: Error | unknown) {
+      console.error('Facebookログインエラー:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Facebookログインに失敗しました。';
+      setError(errorMessage);
+    }
+  };
+
   const handleLineLogin = async () => {
     // LINEはSupabaseのデフォルトプロバイダーではないため
     // カスタム認証フローを実装するか、別のライブラリを使用する必要があります
     console.log('LINEでログイン');
-    alert('LINE認証は別途実装が必要です。Supabaseカスタム認証プロバイダーを設定してください。');
+    alert('LINE認証は現在Supabaseでサポートされていません。カスタム認証プロバイダーの設定が必要です。');
   };
 
   if (!isOpen) return null;
@@ -213,6 +257,23 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup }: LoginM
             </button>
             
             <button
+              onClick={handleTwitterLogin}
+              className="w-full flex items-center justify-center gap-3 px-4 py-2 border border-gray-300 rounded-md bg-[#1DA1F2] text-white hover:bg-[#0d8ecf] focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-colors"
+            >
+              <FaTwitter className="w-4 h-4" />
+              <span>Twitterでログイン</span>
+            </button>
+            
+            <button
+              onClick={handleFacebookLogin}
+              className="w-full flex items-center justify-center gap-3 px-4 py-2 border border-gray-300 rounded-md bg-[#4267B2] text-white hover:bg-[#365899] focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-colors"
+            >
+              <FaFacebook className="w-4 h-4" />
+              <span>Facebookでログイン</span>
+            </button>
+            
+            {/* LINEログインは現在Supabaseでサポートされていないため、コメントアウト */}
+            {/* <button
               onClick={handleLineLogin}
               className="w-full flex items-center justify-center gap-3 px-4 py-2 border border-gray-300 rounded-md bg-[#06C755] text-white hover:bg-[#05b14c] focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-colors"
             >
@@ -220,7 +281,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup }: LoginM
                 <path d="M19.365 9.89c.50 0 .907.41.907.91s-.407.91-.907.91H17.59v1.306h1.775c.5 0 .907.41.907.91s-.407.91-.907.91H16.59c-.5 0-.907-.41-.907-.91v-5.03c0-.5.407-.91.907-.91h2.775c.5 0 .907.41.907.91s-.407.91-.907.91H17.59v1.083h1.775zm-6.09 0c.5 0 .907.41.907.91v3.126c0 .5-.407.91-.907.91s-.907-.41-.907-.91v-3.126c0-.5.407-.91.907-.91zm-2.283.91c0-.5-.407-.91-.907-.91s-.907.41-.907.91v3.126c0 .5.407.91.907.91s.907-.41.907-.91V10.8zm-5.75-1.82c-.5 0-.907.41-.907.91v5.03c0 .5.407.91.907.91s.907-.41.907-.91v-1.98h2.775c.5 0 .907-.41.907-.91s-.407-.91-.907-.91H6.149v-1.306h2.775c.5 0 .907-.41.907-.91s-.407-.91-.907-.91H5.242z"/>
               </svg>
               <span>LINEでログイン</span>
-            </button>
+            </button> */}
           </div>
         </div>
         
