@@ -22,7 +22,7 @@ export default function Header() {
       if (session) {
         // プロフィール情報を取得
         const { data: profileData } = await supabase
-          .from('profiles')
+          .from('customer_profiles')
           .select('*')
           .eq('id', session.user.id)
           .single();

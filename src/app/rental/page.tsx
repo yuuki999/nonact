@@ -10,6 +10,7 @@ import { z } from 'zod';
 // Zodスキーマの定義
 const step1Schema = z.object({
   nickname: z.string().min(1, { message: 'ニックネームは必須です' }),
+  phone_number: z.string().min(1, { message: '電話番号は必須です' }),
   birthdate: z.string().min(1, { message: '生年月日は必須です' }),
   gender: z.string().min(1, { message: '性別を選択してください' }),
   location: z.string().min(1, { message: '居住地は必須です' })
@@ -94,7 +95,7 @@ export default function RentalPage() {
         if (data.session) {
           // プロフィール情報の取得
           const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
+            .from('customer_profiles')
             .select('*')
             .eq('id', data.session.user.id)
             .single();
@@ -106,6 +107,7 @@ export default function RentalPage() {
           if (profileData) {
             // プロフィール情報をフォームに設定
             setValue('nickname', profileData.display_name || '');
+            setValue('phone_number', profileData.phone_number || '');
             setValue('birthdate', profileData.birthdate || '');
             setValue('gender', profileData.gender || '');
             setValue('location', profileData.location || '');
@@ -186,10 +188,11 @@ export default function RentalPage() {
     try {
       // プロフィール情報を更新
       const { error: profileError } = await supabase
-        .from('profiles')
+        .from('customer_profiles')
         .upsert({
           id: session.user.id,
           display_name: data.nickname,
+          phone_number: data.phone_number || null,
           birthdate: data.birthdate || null,
           gender: data.gender || null,
           location: data.location || null,
@@ -293,6 +296,20 @@ export default function RentalPage() {
                 />
                 {errors.nickname && (
                   <p className="text-red-500 text-xs mt-1">{errors.nickname.message}</p>
+                )}
+              </div>
+              
+              <div className="mb-4">
+                <label htmlFor="phone_number" className="block text-sm font-medium text-gray-700 mb-1">電話番号 <span className="text-red-500">*</span></label>
+                <input
+                  type="tel"
+                  id="phone_number"
+                  {...register('phone_number')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500"
+                  placeholder="090-1234-5678"
+                />
+                {errors.phone_number && (
+                  <p className="text-red-500 text-xs mt-1">{errors.phone_number.message}</p>
                 )}
               </div>
               

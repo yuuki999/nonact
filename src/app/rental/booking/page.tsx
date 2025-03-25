@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
+import { getCurrentUserInfo, UserInfo } from '../../lib/userService';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -13,15 +14,27 @@ const castSchema = z.object({
 });
 
 const scheduleSchema = z.object({
-  plan: z.string().min(1, { message: 'プランを選択してください' }),
   date: z.string().min(1, { message: '日付を選択してください' }),
   startTime: z.string().min(1, { message: '開始時間を選択してください' }),
   duration: z.string().min(1, { message: '時間を選択してください' }),
-  location: z.string().min(1, { message: '待ち合わせ場所を入力してください' })
+  location: z.string().min(1, { message: '待ち合わせ場所を選択してください' }),
+  date2: z.string().optional(),
+  startTime2: z.string().optional(),
+  date3: z.string().optional(),
+  startTime3: z.string().optional(),
+  alternateTime: z.string().optional(),
+  secondCastId: z.string().optional(),
+  budget: z.string().optional(),
+  extension: z.string().optional(),
+  meetingLocation: z.string().min(1, { message: '待ち合わせ場所のエリアを選択してください' })
 });
 
 const confirmationSchema = z.object({
-  request: z.string().optional()
+  request: z.string().optional(),
+  paymentMethod: z.string().min(1, { message: 'お支払い方法を選択してください' }),
+  customerName: z.string().min(1, { message: 'お名前を入力してください' }),
+  customerEmail: z.string().email({ message: '有効なメールアドレスを入力してください' }),
+  customerPhone: z.string().min(1, { message: '電話番号を入力してください' })
 });
 
 const bookingFormSchema = z.object({
@@ -41,8 +54,9 @@ type Cast = {
 
 export default function BookingPage() {
   const router = useRouter();
-  const [session, setSession] = useState<{ user: { id: string } } | null>(null);
+  const [, setSession] = useState<{ user: { id: string } } | null>(null);
   const [profile, setProfile] = useState<{id: string; display_name?: string | null} | null>(null);
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentStep, setCurrentStep] = useState(1);
   const [casts, setCasts] = useState<Cast[]>([]);
@@ -52,20 +66,31 @@ export default function BookingPage() {
     register, 
     handleSubmit, 
     formState: { errors },
-    getValues,
-    setValue,
     watch,
-    trigger
+    trigger,
+    setValue
   } = useForm<BookingFormData>({
     resolver: zodResolver(bookingFormSchema),
     defaultValues: {
       castId: '',
-      plan: 'standard',
+      secondCastId: '',
       date: '',
       startTime: '',
+      date2: '',
+      startTime2: '',
+      date3: '',
+      startTime3: '',
+      alternateTime: '別時間帯も検討可能',
       duration: '2',
       location: '',
-      request: ''
+      meetingLocation: '23区内',
+      budget: '',
+      extension: 'はい',
+      request: '',
+      paymentMethod: '当日 - 現金支払い',
+      customerName: profile?.display_name || '',
+      customerEmail: '',
+      customerPhone: ''
     },
     mode: 'onChange'
   });
@@ -98,12 +123,23 @@ export default function BookingPage() {
       if (currentSession) {
         // プロフィール情報を取得
         const { data: profileData } = await supabase
-          .from('profiles')
+          .from('customer_profiles')
           .select('*')
           .eq('id', currentSession.user.id)
           .single();
         
         setProfile(profileData);
+        
+        // userServiceを使ってユーザー情報を取得
+        const userInfoData = await getCurrentUserInfo();
+        setUserInfo(userInfoData);
+        
+        // ユーザー情報があればフォームに設定
+        if (userInfoData) {
+          setValue('customerName', userInfoData.display_name || '');
+          setValue('customerEmail', userInfoData.email || '');
+          setValue('customerPhone', userInfoData.phone_number || '');
+        }
         
         // プロフィール情報がない場合は基本情報入力ページへリダイレクト
         if (!profileData || !profileData.display_name) {
@@ -118,7 +154,7 @@ export default function BookingPage() {
     };
     
     checkSession();
-  }, [router]);
+  }, [router, setValue]);
   
   // ステップ移動関数
   const goToNextStep = async () => {
@@ -129,7 +165,7 @@ export default function BookingPage() {
       if (currentStep === 1) {
         isValid = await trigger('castId');
       } else if (currentStep === 2) {
-        isValid = await trigger(['plan', 'date', 'startTime', 'duration', 'location']);
+        isValid = await trigger(['date', 'startTime', 'duration', 'location']);
       }
       
       if (isValid) {
@@ -156,18 +192,29 @@ export default function BookingPage() {
         .insert({
           user_id: profile?.id,
           cast_id: data.castId,
-          plan: data.plan,
+          second_cast_id: data.secondCastId || null,
           date: data.date,
           start_time: data.startTime,
-          duration: data.duration,
+          date2: data.date2 || null,
+          start_time2: data.startTime2 || null,
+          date3: data.date3 || null,
+          start_time3: data.startTime3 || null,
+          alternate_time: data.alternateTime,
+          duration: parseInt(data.duration),
           location: data.location,
+          meeting_location: data.meetingLocation,
+          budget: data.budget,
+          extension: data.extension,
+          payment_method: data.paymentMethod,
           request: data.request || '',
-          status: 'pending'
+          status: 'pending',
+          created_at: new Date().toISOString()
         });
         
       if (error) {
         console.error('予約エラー:', error);
-        alert('予約に失敗しました。再度お試しください。');
+        console.error('エラー詳細:', JSON.stringify(error, null, 2));
+        alert(`予約に失敗しました: ${error.message}`);
       } else {
         alert('予約が完了しました。');
         router.push('/mypage'); // マイページにリダイレクト
@@ -216,38 +263,74 @@ export default function BookingPage() {
             <div className="mb-8">
               <h2 className="text-xl font-semibold mb-4 pb-2 border-b border-gray-200">キャストを選択</h2>
               
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-6">
-                {casts.map(cast => (
-                  <div key={cast.id} className="text-center">
-                    <input
-                      type="radio"
-                      id={`cast-${cast.id}`}
-                      value={cast.id}
-                      {...register('castId')}
-                      className="sr-only"
-                    />
-                    <label
-                      htmlFor={`cast-${cast.id}`}
-                      className={`block cursor-pointer ${
-                        watch('castId') === cast.id
-                          ? 'ring-2 ring-amber-500'
-                          : 'hover:opacity-80'
-                      }`}
-                    >
-                      <div className="relative pb-[100%] overflow-hidden rounded-full mb-2">
-                        <div className="absolute inset-0 bg-gray-200 flex items-center justify-center">
-                          <span className="text-3xl">👩</span>
+              <div className="mb-6">
+                <h3 className="font-medium text-lg mb-3">第1希望のキャスト</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-4">
+                  {casts.map(cast => (
+                    <div key={cast.id} className="text-center">
+                      <input
+                        type="radio"
+                        id={`cast-${cast.id}`}
+                        value={cast.id}
+                        {...register('castId')}
+                        className="sr-only"
+                      />
+                      <label
+                        htmlFor={`cast-${cast.id}`}
+                        className={`block cursor-pointer ${
+                          watch('castId') === cast.id
+                            ? 'ring-2 ring-amber-500'
+                            : 'hover:opacity-80'
+                        }`}
+                      >
+                        <div className="relative pb-[100%] overflow-hidden rounded-full mb-2">
+                          <div className="absolute inset-0 bg-gray-200 flex items-center justify-center">
+                            <span className="text-3xl">👩</span>
+                          </div>
                         </div>
-                      </div>
-                      <p className="text-sm font-medium">{cast.name}</p>
-                    </label>
-                  </div>
-                ))}
+                        <p className="text-sm font-medium">{cast.name}</p>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+                
+                {errors.castId && (
+                  <p className="text-red-500 text-sm mt-1">{errors.castId.message}</p>
+                )}
               </div>
               
-              {errors.castId && (
-                <p className="text-red-500 text-sm mt-1">{errors.castId.message}</p>
-              )}
+              <div className="mb-6">
+                <h3 className="font-medium text-lg mb-3">第2希望のキャスト（任意）</h3>
+                <p className="text-sm text-gray-600 mb-3">第1希望のキャストが予約できない場合の代替キャストを選択できます</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-4">
+                  {casts.map(cast => (
+                    <div key={`second-${cast.id}`} className="text-center">
+                      <input
+                        type="radio"
+                        id={`second-cast-${cast.id}`}
+                        value={cast.id}
+                        {...register('secondCastId')}
+                        className="sr-only"
+                      />
+                      <label
+                        htmlFor={`second-cast-${cast.id}`}
+                        className={`block cursor-pointer ${
+                          watch('secondCastId') === cast.id
+                            ? 'ring-2 ring-amber-500'
+                            : 'hover:opacity-80'
+                        }`}
+                      >
+                        <div className="relative pb-[100%] overflow-hidden rounded-full mb-2">
+                          <div className="absolute inset-0 bg-gray-200 flex items-center justify-center">
+                            <span className="text-3xl">👩</span>
+                          </div>
+                        </div>
+                        <p className="text-sm font-medium">{cast.name}</p>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
               
               <div className="flex justify-end">
                 <button
@@ -265,93 +348,205 @@ export default function BookingPage() {
           {currentStep === 2 && (
             <div className="mb-8">
               <h2 className="text-xl font-semibold mb-4 pb-2 border-b border-gray-200">日程を選択</h2>
-              
-              <div className="mb-6">
-                <h3 className="font-medium text-lg mb-3">プランを選択</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="border border-gray-200 rounded-lg p-4 hover:border-amber-500 hover:shadow-md transition cursor-pointer">
-                    <input
-                      type="radio"
-                      id="plan-standard"
-                      value="standard"
-                      {...register('plan')}
-                      className="sr-only"
-                    />
-                    <label
-                      htmlFor="plan-standard"
-                      className={`block cursor-pointer ${
-                        watch('plan') === 'standard' ? 'text-amber-500' : ''
-                      }`}
-                    >
-                      <h3 className="font-semibold text-lg mb-2">スタンダードプラン</h3>
-                      <p className="text-gray-600 mb-2">1時間 3,000円〜</p>
-                      <ul className="text-sm text-gray-500 list-disc list-inside">
-                        <li>カフェでのお話</li>
-                        <li>散歩</li>
-                        <li>ショッピング同行</li>
-                      </ul>
-                    </label>
+                            
+              <div className="mb-8 bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+                <div className="bg-amber-50 px-4 py-3 border-b border-amber-100">
+                  <h3 className="font-medium text-lg text-amber-800">希望日時を選択（最大3つまで）</h3>
+                </div>
+                
+                <div className="p-4">
+                  <div className="border-l-4 border-gray-300 pl-4 mb-6 bg-gray-50 p-3 rounded-r">
+                    <h4 className="font-medium mb-2">第1希望</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
+                      <div>
+                        <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">日付</label>
+                        <input
+                          type="date"
+                          id="date"
+                          {...register('date')}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500"
+                        />
+                        {errors.date && (
+                          <p className="text-red-500 text-xs mt-1">{errors.date.message}</p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <label htmlFor="startTime" className="block text-sm font-medium text-gray-700 mb-1">開始時間</label>
+                        <select
+                          id="startTime"
+                          {...register('startTime')}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500"
+                        >
+                          <option value="">選択してください</option>
+                          <option value="10:00">10:00</option>
+                          <option value="10:30">10:30</option>
+                          <option value="11:00">11:00</option>
+                          <option value="11:30">11:30</option>
+                          <option value="12:00">12:00</option>
+                          <option value="12:30">12:30</option>
+                          <option value="13:00">13:00</option>
+                          <option value="13:30">13:30</option>
+                          <option value="14:00">14:00</option>
+                          <option value="14:30">14:30</option>
+                          <option value="15:00">15:00</option>
+                          <option value="15:30">15:30</option>
+                          <option value="16:00">16:00</option>
+                          <option value="16:30">16:30</option>
+                          <option value="17:00">17:00</option>
+                          <option value="17:30">17:30</option>
+                          <option value="18:00">18:00</option>
+                          <option value="18:30">18:30</option>
+                          <option value="19:00">19:00</option>
+                          <option value="19:30">19:30</option>
+                          <option value="20:00">20:00</option>
+                        </select>
+                        {errors.startTime && (
+                          <p className="text-red-500 text-xs mt-1">{errors.startTime.message}</p>
+                        )}
+                      </div>
+                    </div>
                   </div>
                   
-                  <div className="border border-gray-200 rounded-lg p-4 hover:border-amber-500 hover:shadow-md transition cursor-pointer">
-                    <input
-                      type="radio"
-                      id="plan-premium"
-                      value="premium"
-                      {...register('plan')}
-                      className="sr-only"
-                    />
-                    <label
-                      htmlFor="plan-premium"
-                      className={`block cursor-pointer ${
-                        watch('plan') === 'premium' ? 'text-amber-500' : ''
-                      }`}
-                    >
-                      <h3 className="font-semibold text-lg mb-2">プレミアムプラン</h3>
-                      <p className="text-gray-600 mb-2">1時間 5,000円〜</p>
-                      <ul className="text-sm text-gray-500 list-disc list-inside">
-                        <li>レストランでの食事</li>
-                        <li>映画・美術館</li>
-                        <li>アクティビティ</li>
-                      </ul>
-                    </label>
+                  <div className="border-l-4 border-gray-300 pl-4 mb-6 bg-gray-50 p-3 rounded-r">
+                    <h4 className="font-medium mb-2 text-gray-700">第2希望</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
+                      <div>
+                        <label htmlFor="date2" className="block text-sm font-medium text-gray-700 mb-1">日付</label>
+                        <input
+                          type="date"
+                          id="date2"
+                          {...register('date2')}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label htmlFor="startTime2" className="block text-sm font-medium text-gray-700 mb-1">開始時間</label>
+                        <select
+                          id="startTime2"
+                          {...register('startTime2')}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500"
+                        >
+                          <option value="">選択してください</option>
+                          <option value="10:00">10:00</option>
+                          <option value="10:30">10:30</option>
+                          <option value="11:00">11:00</option>
+                          <option value="11:30">11:30</option>
+                          <option value="12:00">12:00</option>
+                          <option value="12:30">12:30</option>
+                          <option value="13:00">13:00</option>
+                          <option value="13:30">13:30</option>
+                          <option value="14:00">14:00</option>
+                          <option value="14:30">14:30</option>
+                          <option value="15:00">15:00</option>
+                          <option value="15:30">15:30</option>
+                          <option value="16:00">16:00</option>
+                          <option value="16:30">16:30</option>
+                          <option value="17:00">17:00</option>
+                          <option value="17:30">17:30</option>
+                          <option value="18:00">18:00</option>
+                          <option value="18:30">18:30</option>
+                          <option value="19:00">19:00</option>
+                          <option value="19:30">19:30</option>
+                          <option value="20:00">20:00</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="border-l-4 border-gray-300 pl-4 mb-6 bg-gray-50 p-3 rounded-r">
+                    <h4 className="font-medium mb-2 text-gray-700">第3希望</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
+                      <div>
+                        <label htmlFor="date3" className="block text-sm font-medium text-gray-700 mb-1">日付</label>
+                        <input
+                          type="date"
+                          id="date3"
+                          {...register('date3')}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label htmlFor="startTime3" className="block text-sm font-medium text-gray-700 mb-1">開始時間</label>
+                        <select
+                          id="startTime3"
+                          {...register('startTime3')}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500"
+                        >
+                          <option value="">選択してください</option>
+                          <option value="10:00">10:00</option>
+                          <option value="10:30">10:30</option>
+                          <option value="11:00">11:00</option>
+                          <option value="11:30">11:30</option>
+                          <option value="12:00">12:00</option>
+                          <option value="12:30">12:30</option>
+                          <option value="13:00">13:00</option>
+                          <option value="13:30">13:30</option>
+                          <option value="14:00">14:00</option>
+                          <option value="14:30">14:30</option>
+                          <option value="15:00">15:00</option>
+                          <option value="15:30">15:30</option>
+                          <option value="16:00">16:00</option>
+                          <option value="16:30">16:30</option>
+                          <option value="17:00">17:00</option>
+                          <option value="17:30">17:30</option>
+                          <option value="18:00">18:00</option>
+                          <option value="18:30">18:30</option>
+                          <option value="19:00">19:00</option>
+                          <option value="19:30">19:30</option>
+                          <option value="20:00">20:00</option>
+                        </select>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                {errors.plan && (
-                  <p className="text-red-500 text-sm mt-1">{errors.plan.message}</p>
-                )}
               </div>
               
-              <div className="mb-6">
-                <h3 className="font-medium text-lg mb-3">日時を選択</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div>
-                    <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">日付</label>
-                    <input
-                      type="date"
-                      id="date"
-                      {...register('date')}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500"
-                    />
-                    {errors.date && (
-                      <p className="text-red-500 text-xs mt-1">{errors.date.message}</p>
-                    )}
+              <div className="mb-8 bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+                <div className="bg-amber-50 px-4 py-3 border-b border-amber-100">
+                  <h3 className="font-medium text-lg text-amber-800">レンタル詳細</h3>
+                </div>
+                
+                <div className="p-4">
+                  <div className="mb-5 pb-4 border-b border-gray-100">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">ご希望の日時以外でも可能な日時はありますか？</label>
+                    <div className="space-y-2">
+                      <div className="flex items-center">
+                        <input
+                          type="radio"
+                          id="alt-time-1"
+                          value="別時間帯も検討可能"
+                          {...register('alternateTime')}
+                          className="mr-2"
+                        />
+                        <label htmlFor="alt-time-1" className="text-sm">別時間帯も検討可能</label>
+                      </div>
+                      <div className="flex items-center">
+                        <input
+                          type="radio"
+                          id="alt-time-2"
+                          value="別日時も検討可能"
+                          {...register('alternateTime')}
+                          className="mr-2"
+                        />
+                        <label htmlFor="alt-time-2" className="text-sm">別日時も検討可能</label>
+                      </div>
+                      <div className="flex items-center">
+                        <input
+                          type="radio"
+                          id="alt-time-3"
+                          value="希望日時以外は不可"
+                          {...register('alternateTime')}
+                          className="mr-2"
+                        />
+                        <label htmlFor="alt-time-3" className="text-sm">希望日時以外は不可</label>
+                      </div>
+                    </div>
                   </div>
                   
-                  <div>
-                    <label htmlFor="startTime" className="block text-sm font-medium text-gray-700 mb-1">開始時間</label>
-                    <input
-                      type="time"
-                      id="startTime"
-                      {...register('startTime')}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500"
-                    />
-                    {errors.startTime && (
-                      <p className="text-red-500 text-xs mt-1">{errors.startTime.message}</p>
-                    )}
-                  </div>
-                  
-                  <div>
+                  <div className="mb-5 pb-4 border-b border-gray-100">
                     <label htmlFor="duration" className="block text-sm font-medium text-gray-700 mb-1">時間</label>
                     <select
                       id="duration"
@@ -367,23 +562,107 @@ export default function BookingPage() {
                       <p className="text-red-500 text-xs mt-1">{errors.duration.message}</p>
                     )}
                   </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">延長可能性はありますか？</label>
+                    <div className="flex space-x-4">
+                      <div className="flex items-center">
+                        <input
+                          type="radio"
+                          id="extension-yes"
+                          value="はい"
+                          {...register('extension')}
+                          className="mr-2"
+                        />
+                        <label htmlFor="extension-yes" className="text-sm">はい</label>
+                      </div>
+                      <div className="flex items-center">
+                        <input
+                          type="radio"
+                          id="extension-no"
+                          value="いいえ"
+                          {...register('extension')}
+                          className="mr-2"
+                        />
+                        <label htmlFor="extension-no" className="text-sm">いいえ</label>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
               
-              <div className="mb-6">
-                <h3 className="font-medium text-lg mb-3">場所</h3>
-                <div className="mb-4">
-                  <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">待ち合わせ場所</label>
-                  <input
-                    type="text"
-                    id="location"
-                    placeholder="例: 渋谷駅ハチ公前"
-                    {...register('location')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500"
-                  />
-                  {errors.location && (
-                    <p className="text-red-500 text-xs mt-1">{errors.location.message}</p>
-                  )}
+              <div className="mb-8 bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+                <div className="bg-amber-50 px-4 py-3 border-b border-amber-100">
+                  <h3 className="font-medium text-lg text-amber-800">場所と予算</h3>
+                </div>
+                
+                <div className="p-4">
+                  <div className="mb-5 pb-4 border-b border-gray-100">
+                    <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">待ち合わせ場所</label>
+                    <input
+                      type="text"
+                      id="location"
+                      placeholder="例: 渋谷駅ハチ公前"
+                      {...register('location')}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500"
+                    />
+                    {errors.location && (
+                      <p className="text-red-500 text-xs mt-1">{errors.location.message}</p>
+                    )}
+                  </div>
+                  
+                  <div className="mb-5 pb-4 border-b border-gray-100">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">レンタル場所</label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="border border-gray-200 rounded-lg p-3 hover:border-amber-500 hover:bg-amber-50 transition cursor-pointer">
+                        <input
+                          type="radio"
+                          id="meeting-location-1"
+                          value="23区内"
+                          {...register('meetingLocation')}
+                          className="sr-only"
+                        />
+                        <label htmlFor="meeting-location-1" className="block cursor-pointer">
+                          <div className="font-medium mb-1">23区内</div>
+                          <div className="text-amber-600 text-sm">3,000円</div>
+                        </label>
+                      </div>
+                      
+                      <div className="border border-gray-200 rounded-lg p-3 hover:border-amber-500 hover:bg-amber-50 transition cursor-pointer">
+                        <input
+                          type="radio"
+                          id="meeting-location-2"
+                          value="23区外"
+                          {...register('meetingLocation')}
+                          className="sr-only"
+                        />
+                        <label htmlFor="meeting-location-2" className="block cursor-pointer">
+                          <div className="font-medium mb-1">23区外</div>
+                          <div className="text-amber-600 text-sm">5,000円～</div>
+                        </label>
+                      </div>
+                    </div>
+                    {errors.meetingLocation && (
+                      <p className="text-red-500 text-xs mt-2">{errors.meetingLocation.message}</p>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="budget" className="block text-sm font-medium text-gray-700 mb-2">予算</label>
+                    <div className="relative">
+                      <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">¥</span>
+                      <input
+                        type="text"
+                        id="budget"
+                        placeholder="予算を入力してください"
+                        {...register('budget')}
+                        className="w-full pl-8 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500"
+                      />
+                    </div>
+                    {errors.budget && (
+                      <p className="text-red-500 text-xs mt-1">{errors.budget.message}</p>
+                    )}
+                  </div>
                 </div>
               </div>
               
@@ -411,62 +690,227 @@ export default function BookingPage() {
             <div className="mb-8">
               <h2 className="text-xl font-semibold mb-4 pb-2 border-b border-gray-200">確認とお支払い</h2>
               
-              <div className="bg-gray-50 p-4 rounded-lg mb-6">
-                <h3 className="font-medium text-lg mb-3">予約内容</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <p className="text-sm text-gray-500">キャスト</p>
-                    <p className="font-medium">
-                      {casts.find(c => c.id === watch('castId'))?.name || '選択されていません'}
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-sm text-gray-500">プラン</p>
-                    <p className="font-medium">
-                      {watch('plan') === 'standard' ? 'スタンダードプラン' : 'プレミアムプラン'}
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-sm text-gray-500">日付</p>
-                    <p className="font-medium">{watch('date')}</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-sm text-gray-500">時間</p>
-                    <p className="font-medium">{watch('startTime')} ({watch('duration')}時間)</p>
-                  </div>
-                  
-                  <div className="md:col-span-2">
-                    <p className="text-sm text-gray-500">場所</p>
-                    <p className="font-medium">{watch('location')}</p>
-                  </div>
+              <div className="mb-8 bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+                <div className="bg-amber-50 px-4 py-3 border-b border-amber-100">
+                  <h3 className="font-medium text-lg text-amber-800">キャスト情報</h3>
                 </div>
                 
-                <div className="border-t border-gray-200 pt-4 mt-4">
-                  <p className="text-sm text-gray-500">料金</p>
-                  <p className="font-medium text-lg">
-                    {watch('plan') === 'standard' ? '3,000' : '5,000'} 円 × {watch('duration')}時間 = 
-                    <span className="text-amber-500 font-bold">
-                      {(watch('plan') === 'standard' ? 3000 : 5000) * parseInt(watch('duration') || '1')}円
-                    </span>
-                  </p>
+                <div className="p-4">
+                  <div className="flex flex-col md:flex-row gap-4">
+                    <div className="flex-1 p-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-500 mb-1">第1希望キャスト</p>
+                      <p className="font-medium text-lg">
+                        {casts.find(c => c.id === watch('castId'))?.name || '選択されていません'}
+                      </p>
+                    </div>
+                    
+                    {watch('secondCastId') && (
+                      <div className="flex-1 p-3 bg-gray-50 rounded-lg">
+                        <p className="text-sm text-gray-500 mb-1">第2希望キャスト</p>
+                        <p className="font-medium text-lg">
+                          {casts.find(c => c.id === watch('secondCastId'))?.name || '選択されていません'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
               
-              <div className="mb-6">
-                <label htmlFor="request" className="block text-sm font-medium text-gray-700 mb-1">
-                  特別なリクエストがあれば記入してください
-                </label>
-                <textarea
-                  id="request"
-                  rows={4}
-                  placeholder="例: カフェでお話した後、近くの本屋さんに行きたいです。"
-                  {...register('request')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500"
-                />
+              <div className="mb-8 bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+                <div className="bg-amber-50 px-4 py-3 border-b border-amber-100">
+                  <h3 className="font-medium text-lg text-amber-800">日時と時間</h3>
+                </div>
+                
+                <div className="p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                    <div className="flex flex-col gap-4">
+                      <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <p className="text-sm text-gray-500 mb-1">第1希望日時</p>
+                        <p className="font-medium text-lg">{watch('date')} {watch('startTime')}</p>
+                      </div>
+                      
+                      {watch('date2') && watch('startTime2') && (
+                        <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                          <p className="text-sm text-gray-500 mb-1">第2希望日時</p>
+                          <p className="font-medium text-lg">{watch('date2')} {watch('startTime2')}</p>
+                        </div>
+                      )}
+                      
+                      {watch('date3') && watch('startTime3') && (
+                        <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                          <p className="text-sm text-gray-500 mb-1">第3希望日時</p>
+                          <p className="font-medium text-lg">{watch('date3')} {watch('startTime3')}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-500 mb-1">別日時の可能性</p>
+                      <p className="font-medium">{watch('alternateTime')}</p>
+                    </div>
+                    
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-500 mb-1">時間</p>
+                      <p className="font-medium">{watch('duration')}時間</p>
+                    </div>
+                    
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-500 mb-1">延長可能性</p>
+                      <p className="font-medium">{watch('extension')}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mb-8 bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+                <div className="bg-amber-50 px-4 py-3 border-b border-amber-100">
+                  <h3 className="font-medium text-lg text-amber-800">場所と予算</h3>
+                </div>
+                
+                <div className="p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-500 mb-1">待ち合わせ場所</p>
+                      <p className="font-medium">{watch('location')}</p>
+                    </div>
+                    
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-500 mb-1">レンタル場所</p>
+                      <p className="font-medium">{watch('meetingLocation')}</p>
+                    </div>
+                  </div>
+                  
+                  {watch('budget') && (
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-500 mb-1">予算</p>
+                      <p className="font-medium">¥{watch('budget')}</p>
+                    </div>
+                  )}
+                  
+                  <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-amber-100">
+                    <p className="text-sm text-gray-500 font-medium mb-1">料金</p>
+                    <p className="font-medium text-lg">
+                      3,000 円 × {watch('duration')}時間 = 
+                      <span className="text-amber-600 font-bold ml-1">
+                        {3000 * parseInt(watch('duration') || '1')}円
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mb-8 bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+                <div className="bg-amber-50 px-4 py-3 border-b border-amber-100">
+                  <h3 className="font-medium text-lg text-amber-800">お支払い方法</h3>
+                </div>
+                
+                <div className="p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="border border-gray-200 rounded-lg p-3 hover:border-amber-500 hover:bg-amber-50 transition cursor-pointer">
+                      <input
+                        type="radio"
+                        id="payment-cash"
+                        value="当日 - 現金支払い"
+                        {...register('paymentMethod')}
+                        className="sr-only"
+                      />
+                      <label htmlFor="payment-cash" className="block cursor-pointer">
+                        <div className="font-medium mb-1">当日 - 現金支払い</div>
+                        <div className="text-gray-500 text-sm">レンタル当日に現金でお支払い</div>
+                      </label>
+                    </div>
+                    
+                    <div className="border border-gray-200 rounded-lg p-3 hover:border-amber-500 hover:bg-amber-50 transition cursor-pointer">
+                      <input
+                        type="radio"
+                        id="payment-card"
+                        value="事前 - クレジットカード"
+                        {...register('paymentMethod')}
+                        className="sr-only"
+                      />
+                      <label htmlFor="payment-card" className="block cursor-pointer">
+                        <div className="font-medium mb-1">事前 - クレジットカード</div>
+                        <div className="text-gray-500 text-sm">予約確定後にカード決済</div>
+                      </label>
+                    </div>
+                    
+                    <div className="border border-gray-200 rounded-lg p-3 hover:border-amber-500 hover:bg-amber-50 transition cursor-pointer">
+                      <input
+                        type="radio"
+                        id="payment-bank"
+                        value="事前 - 銀行振込"
+                        {...register('paymentMethod')}
+                        className="sr-only"
+                      />
+                      <label htmlFor="payment-bank" className="block cursor-pointer">
+                        <div className="font-medium mb-1">事前 - 銀行振込</div>
+                        <div className="text-gray-500 text-sm">予約確定後に振込決済</div>
+                      </label>
+                    </div>
+                  </div>
+                  {errors.paymentMethod && (
+                    <p className="text-red-500 text-xs mt-2">{errors.paymentMethod.message}</p>
+                  )}
+                </div>
+              </div>
+              
+              <div className="mb-8 bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+                <div className="bg-amber-50 px-4 py-3 border-b border-amber-100">
+                  <h3 className="font-medium text-lg text-amber-800">その他リクエスト</h3>
+                </div>
+                
+                <div className="p-4">
+                  <textarea
+                    id="request"
+                    rows={4}
+                    placeholder="例: カフェでお話した後、近くの本屋さんに行きたいです。"
+                    {...register('request')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-500"
+                  />
+                </div>
+              </div>
+              
+              <div className="mb-8 bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+                <div className="bg-amber-50 px-4 py-3 border-b border-amber-100">
+                  <h3 className="font-medium text-lg text-amber-800">お客様情報の確認</h3>
+                </div>
+                
+                <div className="p-4">
+                  <div className="grid grid-cols-1 gap-4 mb-4">
+                    <div className="border-b border-gray-200 pb-3">
+                      <p className="text-sm font-medium text-gray-700 mb-1">お名前（ニックネーム）</p>
+                      <p className="text-base font-medium">{watch('customerName')}</p>
+                      <input type="hidden" {...register('customerName')} />
+                      {errors.customerName && (
+                        <p className="text-red-500 text-xs mt-1">{errors.customerName.message}</p>
+                      )}
+                    </div>
+                    
+                    <div className="border-b border-gray-200 pb-3">
+                      <p className="text-sm font-medium text-gray-700 mb-1">メールアドレス</p>
+                      <p className="text-base">{watch('customerEmail')}</p>
+                      <input type="hidden" {...register('customerEmail')} />
+                      {errors.customerEmail && (
+                        <p className="text-red-500 text-xs mt-1">{errors.customerEmail.message}</p>
+                      )}
+                    </div>
+                    
+                    <div className="pb-3">
+                      <p className="text-sm font-medium text-gray-700 mb-1">電話番号</p>
+                      <p className="text-base">{watch('customerPhone')}</p>
+                      <input type="hidden" {...register('customerPhone')} />
+                      {errors.customerPhone && (
+                        <p className="text-red-500 text-xs mt-1">{errors.customerPhone.message}</p>
+                      )}
+                    </div>
+                    
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-500">情報を変更する場合は、プロフィール設定から行ってください。</p>
+                    </div>
+                  </div>
+                </div>
               </div>
               
               <div className="flex justify-between">
