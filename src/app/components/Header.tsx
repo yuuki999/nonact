@@ -116,19 +116,24 @@ export default function Header() {
         </nav>
         <div className="flex items-center">
           <div className="flex items-center space-x-3">
-            <button
-              onClick={openLoginModal}
-              className="text-amber-500 text-sm hover:text-amber-600 focus:outline-none"
-            >
-              ログイン
-            </button>
-            {/* <span className="text-gray-300">|</span>
-            <button
-              onClick={openSignupModal}
-              className="text-amber-500 text-sm hover:text-amber-600 focus:outline-none"
-            >
-              新規登録
-            </button> */}
+            {!session ? (
+              <button
+                onClick={openLoginModal}
+                className="text-amber-500 text-sm hover:text-amber-600 focus:outline-none"
+              >
+                ログイン
+              </button>
+            ) : (
+              <Link
+                href="/mypage"
+                className="flex items-center bg-amber-100 text-amber-700 px-4 py-2 rounded-full hover:bg-amber-200 transition-colors text-sm"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                </svg>
+                マイページ
+              </Link>
+            )}
           </div>
           <button
             onClick={handleRentalClick}

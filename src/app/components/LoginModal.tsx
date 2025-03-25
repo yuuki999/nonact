@@ -45,8 +45,8 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup }: LoginM
       // 成功したらモーダルを閉じる
       handleClose();
       
-      // レンタル予約ページにリダイレクト
-      window.location.href = '/rental';
+      // マイページにリダイレクト
+      window.location.href = '/mypage';
     } catch (error: Error | unknown) {
       console.error('ログインエラー:', error);
 
