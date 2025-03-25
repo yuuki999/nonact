@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '../lib/supabase';
 import { FaTwitter, FaFacebook } from 'react-icons/fa';
+import { toast } from 'sonner';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -42,15 +43,31 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup }: LoginM
 
       console.log('ログイン成功:', data);
       
+      // 成功通知を表示
+      toast.success('ログインに成功しました', {
+        position: 'bottom-right',
+        duration: 3000,
+        style: { backgroundColor: '#DCFCE7', color: '#166534', border: '1px solid #22C55E' }
+      });
+      
       // 成功したらモーダルを閉じる
       handleClose();
       
-      // マイページにリダイレクト
-      window.location.href = '/mypage';
+      // トーストが表示されるように少し遅延してからリダイレクト
+      setTimeout(() => {
+        window.location.href = '/mypage';
+      }, 1000); // 1秒後にリダイレクト
     } catch (error: Error | unknown) {
       console.error('ログインエラー:', error);
 
       let errorMessage = 'ログインに失敗しました。メールアドレスとパスワードを確認してください。';
+
+      // 失敗通知を表示
+      toast.error(errorMessage, {
+        position: 'bottom-right',
+        duration: 5000,
+        style: { backgroundColor: '#FEE2E2', color: '#B91C1C', border: '1px solid #EF4444' }
+      });
 
       // AuthApiErrorの場合、errorCodeに基づいてメッセージをカスタマイズ
       if (error && typeof error === 'object') {

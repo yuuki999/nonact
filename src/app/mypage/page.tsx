@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '../lib/supabase';
 import { getCurrentUserInfo } from '../lib/userService';
 import Link from 'next/link';
+import { toast } from 'sonner';
 
 type UserInfo = {
   id: string;
@@ -64,8 +65,36 @@ export default function MyPage() {
   }, [router]);
   
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/');
+    try {
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        // ログアウト失敗時は赤色の通知を表示
+        toast.error('ログアウトに失敗しました', {
+          position: 'bottom-right',
+          duration: 3000,
+          style: { backgroundColor: '#FEE2E2', color: '#B91C1C', border: '1px solid #EF4444' }
+        });
+        console.error('ログアウトエラー:', error);
+        return;
+      }
+      
+      // ログアウト成功時は緑色の通知を表示
+      toast.success('ログアウトしました', {
+        position: 'bottom-right',
+        duration: 3000,
+        style: { backgroundColor: '#DCFCE7', color: '#166534', border: '1px solid #22C55E' }
+      });
+      router.push('/');
+    } catch (error) {
+      // 予期しないエラーが発生した場合
+      console.error('予期しないログアウトエラー:', error);
+      toast.error('予期しないエラーが発生しました', {
+        position: 'bottom-right',
+        duration: 3000,
+        style: { backgroundColor: '#FEE2E2', color: '#B91C1C', border: '1px solid #EF4444' }
+      });
+    }
   };
 
   if (loading) {
