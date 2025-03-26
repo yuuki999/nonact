@@ -67,26 +67,26 @@ export default function SignupModal({ isOpen, onClose, onSignupSuccess, onSwitch
     }
   };
 
-  const handleGoogleSignup = async () => {
-    try {
-      // 結果はリダイレクト後に処理されるので、ここでは使用しない
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`
-        }
-      });
-      
-      if (error) throw error;
-      
-      // GoogleのOAuthは別ウィンドウにリダイレクトするため
-      // ここでは特に何もせず、リダイレクト後の処理を待ちます
-    } catch (error: Error | unknown) {
-      console.error('Googleサインアップエラー:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Googleサインアップに失敗しました。';
-      setError(errorMessage);
-    }
-  };
+  // const handleGoogleSignup = async () => {
+  //   try {
+  //     // 結果はリダイレクト後に処理されるので、ここでは使用しない
+  //     const { error } = await supabase.auth.signInWithOAuth({
+  //       provider: 'google',
+  //       options: {
+  //         redirectTo: `${window.location.origin}/auth/callback`
+  //       }
+  //     });
+  //     
+  //     if (error) throw error;
+  //     
+  //     // GoogleのOAuthは別ウィンドウにリダイレクトするため
+  //     // ここでは特に何もせず、リダイレクト後の処理を待ちます
+  //   } catch (error: Error | unknown) {
+  //     console.error('Googleサインアップエラー:', error);
+  //     const errorMessage = error instanceof Error ? error.message : 'Googleサインアップに失敗しました。';
+  //     setError(errorMessage);
+  //   }
+  // };
 
   // const handleLineSignup = async () => {
   //   // LINEはSupabaseのデフォルトプロバイダーではないため

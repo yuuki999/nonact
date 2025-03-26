@@ -24,8 +24,12 @@ interface Person {
   }[];
 }
 
-export default function ProfilePage({ params }: { params: { id: string } }) {
-  const id = params.id;
+import { use } from 'react';
+
+export default function ProfilePage({ params }: { params: Promise<{ id: string }> }) {
+  // use関数を使用してPromiseを解決する
+  const { id } = use(params);
+  // const id = params.id;
   const [person, setPerson] = useState<Person | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -101,7 +105,8 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
         // 予約成功後の処理
         setBookingStep(3); // 完了ステップに移動
       }
-    } catch (error) {
+    } catch (err) {
+      console.error('予約エラー:', err);
       setBookingStatus({
         loading: false,
         message: 'エラーが発生しました。後でもう一度お試しください。',

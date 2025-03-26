@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
-import { getCurrentUserInfo, UserInfo } from '../../lib/userService';
+import { getCurrentUserInfo } from '../../lib/userService';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -56,7 +56,7 @@ export default function BookingPage() {
   const router = useRouter();
   const [, setSession] = useState<{ user: { id: string } } | null>(null);
   const [profile, setProfile] = useState<{id: string; display_name?: string | null} | null>(null);
-  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  // const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentStep, setCurrentStep] = useState(1);
   const [casts, setCasts] = useState<Cast[]>([]);
@@ -132,7 +132,7 @@ export default function BookingPage() {
         
         // userServiceを使ってユーザー情報を取得
         const userInfoData = await getCurrentUserInfo();
-        setUserInfo(userInfoData);
+        // setUserInfo(userInfoData); // 未使用のステート変数をコメントアウト
         
         // ユーザー情報があればフォームに設定
         if (userInfoData) {

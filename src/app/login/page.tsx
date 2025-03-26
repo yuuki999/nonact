@@ -35,10 +35,10 @@ export default function LoginPage() {
     console.log('Googleでログイン');
   };
 
-  const handleLineLogin = () => {
-    // LINEログイン処理
-    console.log('LINEでログイン');
-  };
+  // const handleLineLogin = () => {
+  //   // LINEログイン処理
+  //   console.log('LINEでログイン');
+  // };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">

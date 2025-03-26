@@ -41,7 +41,7 @@ export async function getCurrentUserInfo(): Promise<UserInfo | null> {
     // 取得した情報を返す
     return {
       id,
-      email,
+      email: email ?? null, // emailがundefinedの場合はnullに変換
       phone_number: profileData?.phone_number ?? null,
       display_name: profileData?.display_name ?? null,
     };

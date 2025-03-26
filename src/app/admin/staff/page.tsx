@@ -440,7 +440,7 @@ export default function StaffManagement() {
                       />
                       <button
                         type="button"
-                        onClick={(e) => {
+                        onClick={() => {
                           const input = document.getElementById('newTag') as HTMLInputElement;
                           addTag(input.value);
                           input.value = '';

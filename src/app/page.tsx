@@ -6,15 +6,6 @@ import Link from 'next/link';
 import AuthStatus from './components/AuthStatus';
 import { supabase } from './lib/supabase';
 
-interface Person {
-  id: number;
-  name: string;
-  image: string;
-  rank?: number;
-  category: string;
-  mainTitle: string;
-  tags: string[];
-}
 
 interface Staff {
   id: string;
@@ -35,19 +26,6 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // ダミーデータはバックアップ用に残しておく
-  const [people, setPeople] = useState<Person[]>([
-    {
-      id: 1,
-      name: '佐々木遥',
-      image: '/images/person1.jpg',
-      rank: 1,
-      category: 'プレミアム',
-      mainTitle: '何もしないのが得意',
-      tags: ['静かに寄り添います', '一緒にいるだけで安心感', '無言でも心地よい時間を提供']
-    },
-    // 他のダミーデータは省略
-  ]);
   
   useEffect(() => {
     async function fetchStaff() {
@@ -123,7 +101,7 @@ export default function Home() {
                 <div className="relative h-80">
                   <Image 
                     src={staff.profile_image_url || '/images/default-profile.jpg'} 
-                    alt={staff.display_name}
+                    alt={staff.display_name || 'スタッフプロフィール画像'}
                     fill
                     className="object-cover"
                   />

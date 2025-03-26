@@ -29,8 +29,8 @@ export async function isAdmin(): Promise<boolean> {
 }
 
 // 管理者ページのアクセス制御用のラッパーコンポーネント
-export function withAdminAuth(Component: React.ComponentType<any>) {
-  return function AdminProtected(props: any) {
+export function withAdminAuth<T extends object>(Component: React.ComponentType<T>) {
+  return function AdminProtected(props: T) {
     const [isAuthorized, setIsAuthorized] = React.useState(false);
     const [loading, setLoading] = React.useState(true);
     const router = useRouter();

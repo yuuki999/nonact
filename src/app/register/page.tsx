@@ -22,7 +22,6 @@ export default function RegisterPage() {
   const [step, setStep] = useState(1);
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitResult, setSubmitResult] = useState<{ success: boolean; message: string } | null>(null);
   
   // React Hook Formの設定
   const { 
@@ -74,20 +73,10 @@ export default function RegisterPage() {
         throw new Error(result.error || '登録処理中にエラーが発生しました');
       }
       
-      // 成功
-      setSubmitResult({
-        success: true,
-        message: result.message || '登録が完了しました。確認メールをご確認ください。'
-      });
-      
       // 最終ステップに進む
       setStep(2);
     } catch (error) {
       console.error('登録エラー:', error);
-      setSubmitResult({
-        success: false,
-        message: error instanceof Error ? error.message : '登録中にエラーが発生しました。後でもう一度お試しください。'
-      });
     } finally {
       setIsSubmitting(false);
     }

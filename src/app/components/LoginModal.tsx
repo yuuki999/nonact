@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '../lib/supabase';
-import { FaTwitter, FaFacebook } from 'react-icons/fa';
+// import { FaTwitter, FaFacebook } from 'react-icons/fa';
 import { toast } from 'sonner';
 
 interface LoginModalProps {
@@ -93,75 +93,75 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup }: LoginM
     }
   };
 
-  const handleGoogleLogin = async () => {
-    try {
-      // 結果はリダイレクト後に処理されるので、ここでは使用しない
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`
-        }
-      });
-      
-      if (error) throw error;
-      
-      // GoogleのOAuthは別ウィンドウにリダイレクトするため
-      // ここでは特に何もせず、リダイレクト後の処理を待ちます
-    } catch (error: Error | unknown) {
-      console.error('Googleログインエラー:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Googleログインに失敗しました。';
-      setError(errorMessage);
-    }
-  };
+  // const handleGoogleLogin = async () => {
+  //   try {
+  //     // 結果はリダイレクト後に処理されるので、ここでは使用しない
+  //     const { error } = await supabase.auth.signInWithOAuth({
+  //       provider: 'google',
+  //       options: {
+  //         redirectTo: `${window.location.origin}/auth/callback`
+  //       }
+  //     });
+  //     
+  //     if (error) throw error;
+  //     
+  //     // GoogleのOAuthは別ウィンドウにリダイレクトするため
+  //     // ここでは特に何もせず、リダイレクト後の処理を待ちます
+  //   } catch (error: Error | unknown) {
+  //     console.error('Googleログインエラー:', error);
+  //     const errorMessage = error instanceof Error ? error.message : 'Googleログインに失敗しました。';
+  //     setError(errorMessage);
+  //   }
+  // };
 
-  const handleTwitterLogin = async () => {
-    try {
-      // 結果はリダイレクト後に処理されるので、ここでは使用しない
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'twitter',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`
-        }
-      });
-      
-      if (error) throw error;
-      
-      // TwitterのOAuthは別ウィンドウにリダイレクトするため
-      // ここでは特に何もせず、リダイレクト後の処理を待ちます
-    } catch (error: Error | unknown) {
-      console.error('Twitterログインエラー:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Twitterログインに失敗しました。';
-      setError(errorMessage);
-    }
-  };
+  // const handleTwitterLogin = async () => {
+  //   try {
+  //     // 結果はリダイレクト後に処理されるので、ここでは使用しない
+  //     const { error } = await supabase.auth.signInWithOAuth({
+  //       provider: 'twitter',
+  //       options: {
+  //         redirectTo: `${window.location.origin}/auth/callback`
+  //       }
+  //     });
+  //     
+  //     if (error) throw error;
+  //     
+  //     // TwitterのOAuthは別ウィンドウにリダイレクトするため
+  //     // ここでは特に何もせず、リダイレクト後の処理を待ちます
+  //   } catch (error: Error | unknown) {
+  //     console.error('Twitterログインエラー:', error);
+  //     const errorMessage = error instanceof Error ? error.message : 'Twitterログインに失敗しました。';
+  //     setError(errorMessage);
+  //   }
+  // };
 
-  const handleFacebookLogin = async () => {
-    try {
-      // 結果はリダイレクト後に処理されるので、ここでは使用しない
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'facebook',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`
-        }
-      });
-      
-      if (error) throw error;
-      
-      // FacebookのOAuthは別ウィンドウにリダイレクトするため
-      // ここでは特に何もせず、リダイレクト後の処理を待ちます
-    } catch (error: Error | unknown) {
-      console.error('Facebookログインエラー:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Facebookログインに失敗しました。';
-      setError(errorMessage);
-    }
-  };
+  // const handleFacebookLogin = async () => {
+  //   try {
+  //     // 結果はリダイレクト後に処理されるので、ここでは使用しない
+  //     const { error } = await supabase.auth.signInWithOAuth({
+  //       provider: 'facebook',
+  //       options: {
+  //         redirectTo: `${window.location.origin}/auth/callback`
+  //       }
+  //     });
+  //     
+  //     if (error) throw error;
+  //     
+  //     // FacebookのOAuthは別ウィンドウにリダイレクトするため
+  //     // ここでは特に何もせず、リダイレクト後の処理を待ちます
+  //   } catch (error: Error | unknown) {
+  //     console.error('Facebookログインエラー:', error);
+  //     const errorMessage = error instanceof Error ? error.message : 'Facebookログインに失敗しました。';
+  //     setError(errorMessage);
+  //   }
+  // };
 
-  const handleLineLogin = async () => {
-    // LINEはSupabaseのデフォルトプロバイダーではないため
-    // カスタム認証フローを実装するか、別のライブラリを使用する必要があります
-    console.log('LINEでログイン');
-    alert('LINE認証は現在Supabaseでサポートされていません。カスタム認証プロバイダーの設定が必要です。');
-  };
+  // const handleLineLogin = async () => {
+  //   // LINEはSupabaseのデフォルトプロバイダーではないため
+  //   // カスタム認証フローを実装するか、別のライブラリを使用する必要があります
+  //   console.log('LINEでログイン');
+  //   alert('LINE認証は現在Supabaseでサポートされていません。カスタム認証プロバイダーの設定が必要です。');
+  // };
 
   if (!isOpen) return null;
 

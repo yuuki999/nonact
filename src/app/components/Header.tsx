@@ -112,7 +112,7 @@ export default function Header() {
           <Link href="/pricing" className="text-gray-600 hover:text-gray-900">料金プラン</Link>
           <Link href="/register" className="text-gray-600 hover:text-gray-900">何もしない人登録</Link>
           {/* <Link href="/reasons" className="text-gray-600 hover:text-gray-900">選ばれる理由</Link> */}
-          <Link href="/voices" className="text-gray-600 hover:text-gray-900">ご利用者の声</Link>
+          {/* <Link href="/voices" className="text-gray-600 hover:text-gray-900">ご利用者の声</Link> */}
         </nav>
         <div className="flex items-center">
           <div className="flex items-center space-x-3">

@@ -8,12 +8,12 @@ import { isAdmin } from '../lib/admin';
 import Link from 'next/link';
 import { toast } from 'sonner';
 
-type UserInfo = {
-  id: string;
-  display_name?: string | null;
-  email?: string | null;
-  phone_number?: string | null;
-};
+// type UserInfo = {
+//   id: string;
+//   display_name?: string | null;
+//   email?: string | null;
+//   phone_number?: string | null;
+// };
 
 type Booking = {
   id: string;
@@ -29,7 +29,7 @@ type Booking = {
 export default function MyPage() {
   const router = useRouter();
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  // const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdminUser, setIsAdminUser] = useState(false);
 
@@ -44,8 +44,8 @@ export default function MyPage() {
       }
       
       // ユーザー情報を取得
-      const userInfoData = await getCurrentUserInfo();
-      setUserInfo(userInfoData);
+      await getCurrentUserInfo();
+      // setUserInfo(userInfoData);
       
       // 管理者権限を取得
       const adminStatus = await isAdmin();
