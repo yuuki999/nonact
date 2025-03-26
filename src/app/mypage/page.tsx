@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../lib/supabase';
 import { getCurrentUserInfo } from '../lib/userService';
+import { isAdmin } from '../lib/admin';
 import Link from 'next/link';
 import { toast } from 'sonner';
 
@@ -30,6 +31,7 @@ export default function MyPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdminUser, setIsAdminUser] = useState(false);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -44,6 +46,10 @@ export default function MyPage() {
       // ユーザー情報を取得
       const userInfoData = await getCurrentUserInfo();
       setUserInfo(userInfoData);
+      
+      // 管理者権限を取得
+      const adminStatus = await isAdmin();
+      setIsAdminUser(adminStatus);
       
       // 予約情報を取得
       const { data: bookingsData, error } = await supabase
@@ -179,6 +185,23 @@ export default function MyPage() {
               </Link>
             </div>
           </div>
+          
+          {/* 管理者ページセクション */}
+          {isAdminUser && (
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <div>
+                <h3 className="font-medium">管理者ページ</h3>
+              </div>
+              <div>
+                <Link 
+                  href="/admin" 
+                  className="inline-block border border-indigo-500 bg-indigo-500 text-white rounded-full px-4 py-1.5 text-sm font-medium hover:bg-indigo-600 hover:border-indigo-600 transition-colors"
+                >
+                  管理者ページへ
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
         
         {/* 利用の流れセクション */}

@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import AuthStatus from './components/AuthStatus';
+import { supabase } from './lib/supabase';
 
 interface Person {
   id: number;
@@ -15,7 +16,26 @@ interface Person {
   tags: string[];
 }
 
+interface Staff {
+  id: string;
+  created_at: string;
+  name: string;
+  display_name: string;
+  profile_image_url?: string;
+  rank?: number;
+  category?: string;
+  main_title?: string;
+  tags?: string[];
+  bio?: string;
+  is_available: boolean;
+}
+
 export default function Home() {
+  const [staffList, setStaffList] = useState<Staff[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // ダミーデータはバックアップ用に残しておく
   const [people, setPeople] = useState<Person[]>([
     {
       id: 1,
@@ -26,65 +46,40 @@ export default function Home() {
       mainTitle: '何もしないのが得意',
       tags: ['静かに寄り添います', '一緒にいるだけで安心感', '無言でも心地よい時間を提供']
     },
-    {
-      id: 2,
-      name: '白石あやな',
-      image: '/images/person2.jpg',
-      rank: 2,
-      category: 'スペシャル',
-      mainTitle: '存在感を消すのが上手',
-      tags: ['気を遣わせません', '自然体で過ごせます', '何もしない時間の心地よさを体験']
-    },
-    {
-      id: 3,
-      name: '羽山さつき',
-      image: '/images/person3.jpg',
-      rank: 3,
-      category: 'レギュラー',
-      mainTitle: '穏やかな空気を作る',
-      tags: ['無言でも不思議と落ち着く', '何もしない時間を大切に', '一緒にいるだけでリラックス']
-    },
-    {
-      id: 4,
-      name: '杉崎澪',
-      image: '/images/person4.jpg',
-      category: 'スペシャル',
-      mainTitle: '静かな共有時間の達人',
-      tags: ['存在を主張しません', '何もしない贅沢を体験', '心地よい距離感を保ちます']
-    },
-    {
-      id: 5,
-      name: '鈴木ありさ',
-      image: '/images/person5.jpg',
-      category: 'スペシャル',
-      mainTitle: '無の境地を極める',
-      tags: ['何もしない時間の価値を知る', '静寂を楽しむ', '心穏やかな時間を共有']
-    },
-    {
-      id: 6,
-      name: '山田ななこ',
-      image: '/images/person6.jpg',
-      category: 'プレミアム',
-      mainTitle: '何もしない上級者',
-      tags: ['無駄な気遣いをさせません', '自然な間を大切に', '何もしないことの豊かさを体験']
-    },
-    {
-      id: 7,
-      name: '高橋みく',
-      image: '/images/person7.jpg',
-      category: 'レギュラー',
-      mainTitle: '静寂の中の安らぎ',
-      tags: ['無言でも居心地が良い', '何もしない贅沢な時間', '自分のペースを尊重します']
-    },
-    {
-      id: 8,
-      name: '田中ゆい',
-      image: '/images/person8.jpg',
-      category: 'スペシャル',
-      mainTitle: '無為自然の時間を提供',
-      tags: ['何もしないプロフェッショナル', '静かな存在感', '心地よい空間を作ります']
-    }
+    // 他のダミーデータは省略
   ]);
+  
+  useEffect(() => {
+    async function fetchStaff() {
+      try {
+        setLoading(true);
+        
+        // Supabaseからnonact_staffテーブルのデータを取得
+        const { data, error } = await supabase
+          .from('nonact_staff')
+          .select('*')
+          .eq('is_available', true)
+          .order('created_at', { ascending: false }); // rankの代わりにcreated_atを使用
+        
+        if (error) {
+          throw error;
+        }
+        
+        if (data) {
+          // データが取得できたらステートに設定
+          setStaffList(data);
+          console.log('スタッフデータを取得しました:', data);
+        }
+      } catch (err) {
+        console.error('スタッフデータの取得中にエラーが発生しました:', err);
+        setError(err instanceof Error ? err.message : 'データの取得中にエラーが発生しました');
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    fetchStaff();
+  }, []);
 
   return (
     <div className="min-h-screen bg-amber-50">
@@ -102,49 +97,80 @@ export default function Home() {
           {/* <Link href="/reasons" className="text-blue-600 hover:underline">選ばれる理由を見る</Link> */}
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {people.map((person) => (
-            <div key={person.id} className="bg-white rounded-lg overflow-hidden shadow-md relative">
-              <div className="relative h-80">
-                <Image 
-                  src={person.image} 
-                  alt={person.name}
-                  fill
-                  className="object-cover"
-                />
-                {person.rank && (
-                  <div className="absolute bottom-4 right-4 w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold">
-                    No.{person.rank}
-                  </div>
-                )}
-              </div>
-              <div className="p-4">
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="font-medium text-lg">{person.name}</h3>
-                  <span className={`text-xs px-2 py-1 rounded ${
-                    person.category === 'プレミアム' ? 'bg-amber-500 text-white' :
-                    person.category === 'スペシャル' ? 'bg-blue-500 text-white' : 
-                    'bg-green-500 text-white'
-                  }`}>
-                    {person.category}
-                  </span>
+        {loading && (
+          <div className="flex justify-center items-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
+          </div>
+        )}
+
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6">
+            <strong className="font-bold">エラー: </strong>
+            <span className="block sm:inline">{error}</span>
+          </div>
+        )}
+
+        {!loading && !error && staffList.length === 0 && (
+          <div className="text-center py-10">
+            <p className="text-gray-600">現在、利用可能な何もしない人がいません。</p>
+          </div>
+        )}
+
+        {!loading && staffList.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {staffList.map((staff) => (
+              <div key={staff.id} className="bg-white rounded-lg overflow-hidden shadow-md relative">
+                <div className="relative h-80">
+                  <Image 
+                    src={staff.profile_image_url || '/images/default-profile.jpg'} 
+                    alt={staff.display_name}
+                    fill
+                    className="object-cover"
+                  />
+                  {staff.rank && (
+                    <div className="absolute bottom-4 right-4 w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold">
+                      No.{staff.rank}
+                    </div>
+                  )}
                 </div>
-                <p className="font-bold text-gray-800 mb-3">{person.mainTitle}</p>
-                <ul className="space-y-1 text-sm text-gray-600">
-                  {person.tags.map((tag, index) => (
-                    <li key={index} className="flex">
-                      <span className="text-gray-400 mr-1">#{index+1}</span>
-                      {tag}
-                    </li>
-                  ))}
-                </ul>
+                <div className="p-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="font-medium text-lg">{staff.display_name}</h3>
+                    <span className={`text-xs px-2 py-1 rounded ${
+                      staff.category === 'プレミアム' ? 'bg-amber-500 text-white' :
+                      staff.category === 'スペシャル' ? 'bg-blue-500 text-white' : 
+                      'bg-green-500 text-white'
+                    }`}>
+                      {staff.category || 'スタンダード'}
+                    </span>
+                  </div>
+                  <p className="font-bold text-gray-800 mb-3">{staff.main_title || '何もしないプロフェッショナル'}</p>
+                  <ul className="space-y-1 text-sm text-gray-600">
+                    {staff.tags && staff.tags.length > 0 ? (
+                      staff.tags.map((tag, index) => (
+                        <li key={index} className="flex">
+                          <span className="text-gray-400 mr-1">#{index+1}</span>
+                          {tag}
+                        </li>
+                      ))
+                    ) : (
+                      <li className="flex">
+                        <span className="text-gray-400 mr-1">#1</span>
+                        何もしないプロフェッショナル
+                      </li>
+                    )}
+                  </ul>
+                </div>
+                <Link 
+                  href={`/rental/${staff.id}`}
+                  className="block bg-gray-100 text-center py-3 text-gray-700 hover:bg-gray-200 transition"
+                >
+                  詳細を見る
+                </Link>
               </div>
-              <Link href={`/profile/${person.id}`} className="block bg-gray-100 text-center py-3 text-gray-700 hover:bg-gray-200 transition">
-                詳細を見る
-              </Link>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
