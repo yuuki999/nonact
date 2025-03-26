@@ -5,8 +5,9 @@ import { Database } from '@/app/types/supabase';
 
 export async function GET(request: NextRequest) {
   try {
-    // Route Handler内でSupabaseクライアントを初期化
-    const supabase = createRouteHandlerClient<Database>({ cookies });
+    // Route Handler内でSupabaseクライアントを初期化 - cookies()をawaitする
+    const cookieStore = cookies();
+    const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore });
     
     // URLからトークンを取得
     const { searchParams } = new URL(request.url);

@@ -1,4 +1,5 @@
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { Database } from '@/app/types/supabase';
@@ -70,8 +71,9 @@ async function sendConfirmationEmail(email: string, name: string, confirmationTo
 
 export async function POST(request: NextRequest) {
   try {
-    // Route Handler内でSupabaseクライアントを初期化
-    const supabase = createRouteHandlerClient<Database>({ cookies });
+    // Route Handler内でSupabaseクライアントを初期化 - cookies()をawaitする
+    const cookieStore = cookies();
+    const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore });
     
     // リクエストボディの取得
     const body = await request.json();
@@ -123,34 +125,51 @@ export async function POST(request: NextRequest) {
     // 画像処理（Base64からアップロード）
     let imageUrl = null;
     if (profileImageBase64) {
-      // Base64文字列からファイルデータを抽出
-      const base64Data = profileImageBase64.split(',')[1];
-      const buffer = Buffer.from(base64Data, 'base64');
-      
-      // ファイル名の生成
-      const fileName = `${uuidv4()}.jpg`;
-      
-      // Supabaseストレージにアップロード
-      const { error: uploadError } = await supabase
-        .storage
-        .from('profile')
-        .upload(`staff/${fileName}`, buffer, {
-          contentType: 'image/jpeg',
-          upsert: false
-        });
-      
-      if (uploadError) {
-        console.error('画像アップロードエラー:', uploadError);
-        return NextResponse.json({ error: '画像のアップロードに失敗しました' }, { status: 500 });
+      try {
+        // Base64文字列からファイルデータを抽出
+        const base64Data = profileImageBase64.split(',')[1];
+        const buffer = Buffer.from(base64Data, 'base64');
+        
+        // ファイル名の生成
+        const fileName = `${uuidv4()}.jpg`;
+        
+        // サービスロールを使用してアップロード（RLSをバイパス）
+        // 環境変数からサービスロールキーを取得
+        const supabaseAdmin = createClient<Database>(
+          process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+          process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+          {
+            auth: {
+              persistSession: false,
+            }
+          }
+        );
+        
+        // Supabaseストレージにアップロード
+        const { error: uploadError } = await supabaseAdmin
+          .storage
+          .from('profile')
+          .upload(`staff/${fileName}`, buffer, {
+            contentType: 'image/jpeg',
+            upsert: false
+          });
+        
+        if (uploadError) {
+          console.error('画像アップロードエラー:', uploadError);
+          return NextResponse.json({ error: '画像のアップロードに失敗しました' }, { status: 500 });
+        }
+        
+        // 画像のURLを取得
+        const { data: { publicUrl } } = supabaseAdmin
+          .storage
+          .from('profile')
+          .getPublicUrl(`staff/${fileName}`);
+        
+        imageUrl = publicUrl;
+      } catch (error) {
+        console.error('画像処理エラー:', error);
+        return NextResponse.json({ error: '画像の処理中にエラーが発生しました' }, { status: 500 });
       }
-      
-      // 画像のURLを取得
-      const { data: { publicUrl } } = supabase
-        .storage
-        .from('profile')
-        .getPublicUrl(`staff/${fileName}`);
-      
-      imageUrl = publicUrl;
     }
     
     // nonact_staff_pendingテーブルに仮登録
