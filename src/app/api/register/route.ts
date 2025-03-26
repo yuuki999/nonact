@@ -145,7 +145,11 @@ export async function POST(request: NextRequest) {
           }
         );
         
-        // Supabaseストレージにアップロード
+        // サービスロールキーの確認用デバッグ出力
+        console.log('SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
+        console.log('SERVICE_ROLE_KEYが設定されているか:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+        
+        // Supabaseストレージにアップロード - バケット名を'trainer'に変更
         const { error: uploadError } = await supabaseAdmin
           .storage
           .from('profile')
@@ -156,10 +160,10 @@ export async function POST(request: NextRequest) {
         
         if (uploadError) {
           console.error('画像アップロードエラー:', uploadError);
-          return NextResponse.json({ error: '画像のアップロードに失敗しました' }, { status: 500 });
+          return NextResponse.json({ error: `画像のアップロードに失敗しました: ${JSON.stringify(uploadError)}` }, { status: 500 });
         }
         
-        // 画像のURLを取得
+        // 画像のURLを取得 - バケット名を'trainer'に変更
         const { data: { publicUrl } } = supabaseAdmin
           .storage
           .from('profile')
