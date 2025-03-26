@@ -6,10 +6,14 @@ import { v4 as uuidv4 } from 'uuid';
 import { Resend } from 'resend';
 
 // Resendクライアントの初期化
-const resend = new Resend(process.env.RESEND_API_KEY || '');
+// APIキーが存在する場合のみ初期化
+let resend: Resend | null = null;
+if (process.env.RESEND_API_KEY) {
+  resend = new Resend(process.env.RESEND_API_KEY);
+}
 
 // メール送信関数（Resendを使用）
-async function sendConfirmationEmail(email: string, confirmationToken: string) {
+async function sendConfirmationEmail(email: string, name: string, confirmationToken: string) {
   // 確認リンクのURL
   const confirmationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/confirm?token=${confirmationToken}`;
   
@@ -19,35 +23,40 @@ async function sendConfirmationEmail(email: string, confirmationToken: string) {
     console.log(`確認トークン: ${confirmationToken}`);
     console.log(`確認URL: ${confirmationUrl}`);
     
-    // Resend APIキーが設定されている場合は実際にメールを送信
-    if (process.env.RESEND_API_KEY) {
-      const { data, error } = await resend.emails.send({
-        from: '何もしない人 <onboarding@resend.dev>',
-        to: email,
-        subject: '何もしない人 - 登録確認',
-        html: `
-          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>登録確認</h2>
-            <p>何もしない人への登録ありがとうございます。</p>
-            <p>登録を完了するには、以下のボタンをクリックしてください。</p>
-            <div style="margin: 30px 0;">
-              <a href="${confirmationUrl}" style="background-color: #f59e0b; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">登録を完了する</a>
+    // Resend APIクライアントが初期化されている場合は実際にメールを送信
+    if (resend) {
+      try {
+        const { error } = await resend.emails.send({
+          from: '何もしない人 <onboarding@resend.dev>',
+          to: email,
+          subject: '何もしない人 - 登録確認',
+          html: `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2>登録確認</h2>
+              <p>何もしない人への登録ありがとうございます。</p>
+              <p>登録を完了するには、以下のボタンをクリックしてください。</p>
+              <div style="margin: 30px 0;">
+                <a href="${confirmationUrl}" style="background-color: #f59e0b; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">登録を完了する</a>
+              </div>
+              <p>ボタンが機能しない場合は、以下のURLをブラウザにコピーしてください：</p>
+              <p><a href="${confirmationUrl}">${confirmationUrl}</a></p>
+              <p>このリンクは24時間有効です。</p>
+              <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;" />
+              <p style="color: #6b7280; font-size: 14px;">このメールは自動送信されています。返信はできません。</p>
             </div>
-            <p>ボタンが機能しない場合は、以下のURLをブラウザにコピーしてください：</p>
-            <p><a href="${confirmationUrl}">${confirmationUrl}</a></p>
-            <p>このリンクは24時間有効です。</p>
-            <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;" />
-            <p style="color: #6b7280; font-size: 14px;">このメールは自動送信されています。返信はできません。</p>
-          </div>
-        `,
-      });
-      
-      if (error) {
-        console.error('メール送信エラー:', error);
+          `,
+        });
+        
+        if (error) {
+          console.error('メール送信エラー:', error);
+          return false;
+        }
+      } catch (error) {
+        console.error('Resendメール送信例外:', error);
         return false;
       }
       
-      console.log('メール送信成功:', data);
+      console.log('メール送信成功');
       return true;
     }
     
@@ -102,7 +111,7 @@ export async function POST(request: NextRequest) {
       }
 
       // 確認メールを再送
-      await sendConfirmationEmail(email, confirmationToken);
+      await sendConfirmationEmail(email, name, confirmationToken);
 
       return NextResponse.json({
         success: true,
@@ -167,7 +176,7 @@ export async function POST(request: NextRequest) {
     }
     
     // 確認メールの送信
-    await sendConfirmationEmail(email, confirmationToken);
+    await sendConfirmationEmail(email, name, confirmationToken);
     
     return NextResponse.json({
       success: true,
