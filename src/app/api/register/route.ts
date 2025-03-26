@@ -1,13 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { Database } from '@/app/types/supabase';
 import { v4 as uuidv4 } from 'uuid';
 import { Resend } from 'resend';
-
-// Supabaseクライアントの初期化
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // Resendクライアントの初期化
 const resend = new Resend(process.env.RESEND_API_KEY || '');
@@ -65,6 +61,9 @@ async function sendConfirmationEmail(email: string, confirmationToken: string) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Route Handler内でSupabaseクライアントを初期化
+    const supabase = createRouteHandlerClient<Database>({ cookies });
+    
     // リクエストボディの取得
     const body = await request.json();
     const { name, email, age, height, hobbies, description, profileImageBase64 } = body;

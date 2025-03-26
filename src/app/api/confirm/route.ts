@@ -1,14 +1,13 @@
-import { createClient } from '@supabase/supabase-js';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { NextRequest, NextResponse } from 'next/server';
-
-// Supabaseクライアントの初期化
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+import { cookies } from 'next/headers';
+import { Database } from '@/app/types/supabase';
 
 export async function GET(request: NextRequest) {
   try {
+    // Route Handler内でSupabaseクライアントを初期化
+    const supabase = createRouteHandlerClient<Database>({ cookies });
+    
     // URLからトークンを取得
     const { searchParams } = new URL(request.url);
     const token = searchParams.get('token');

@@ -1,15 +1,14 @@
-import { createClient } from '@supabase/supabase-js';
-
-// Supabaseクライアントの初期化
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { Database } from '@/app/types/supabase';
 
 // バケット作成関数
 async function createBucket() {
   try {
-    const { data, error } = await supabase.storage.createBucket('profile', {
+    // Server Component内でSupabaseクライアントを初期化
+    const supabase = createServerComponentClient<Database>({ cookies });
+    
+    const { data, error } = await supabase.storage.createBucket('trainer', {
       public: true,
       fileSizeLimit: 10485760, // 10MB
     });
